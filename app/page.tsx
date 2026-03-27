@@ -10,7 +10,12 @@ export const revalidate = 0;
 const CATEGORY_ORDER: Category[] = ["GEOPOLITICAL", "ENERGY", "AGRICULTURE", "POLITICAL"];
 
 export default async function DashboardPage() {
-  const state = await getDashboardState();
+  let state = null;
+  try {
+    state = await getDashboardState();
+  } catch {
+    // KV not configured or unreachable — show empty state
+  }
 
   if (!state) {
     return (
