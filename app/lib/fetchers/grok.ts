@@ -62,6 +62,33 @@ Indicators to assess:
 8. id: "fertilizer-price" — What are current UK fertilizer prices (ammonium nitrate, urea) and how do they compare to a year ago? Search for: UK fertilizer price trends 2026, AHDB fertilizer market, CF Fertilisers UK pricing, British Survey of Fertiliser Practice, Profercy nitrogen index. Also check UK red diesel prices (current pence per litre). Threshold: fertilizer >+40% YoY increase OR red diesel >110 pence per litre. If exact AHDB figures aren't available, use industry reports, farmer forums, or news articles about UK fertilizer costs.`;
 }
 
+/**
+ * Strips Grok-specific XML citation tags from a text string.
+ *
+ * Grok inserts inline citation markup when the web plugin is active, e.g.:
+ *   <grok:render type="render_inline_citation">
+ *     <argument name="citation_id">29</argument>
+ *   </grok:render>
+ *
+ * These tags are meaningless outside xAI's own UI and must be removed before
+ * storing or displaying the text. We strip the entire tag and its inner content
+ * so citations don't leave orphaned numbers or punctuation behind.
+ */
+export function stripGrokCitationTags(text: string): string {
+  // Remove complete <grok:*>...</grok:*> blocks (including nested content)
+  let cleaned = text.replace(/<grok:[^>]*>[\s\S]*?<\/grok:[^>]*>/g, "");
+
+  // Remove any residual <argument ...>...</argument> tags that escaped the above
+  cleaned = cleaned.replace(/<argument[^>]*>[\s\S]*?<\/argument>/g, "");
+
+  // Remove any self-closing or unclosed <grok:*> or </grok:*> tags left over
+  cleaned = cleaned.replace(/<\/?grok:[^>]*>/g, "");
+
+  // Collapse runs of whitespace created by the removals into a single space,
+  // then trim leading/trailing whitespace.
+  return cleaned.replace(/\s{2,}/g, " ").trim();
+}
+
 export function parseGrokResponse(raw: string): GrokAssessment[] {
   try {
     const codeBlockMatch = raw.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
@@ -70,7 +97,14 @@ export function parseGrokResponse(raw: string): GrokAssessment[] {
     const parsed = JSON.parse(jsonStr.trim());
     if (!Array.isArray(parsed)) return [];
 
-    return parsed.filter(isValidGrokAssessment);
+    return parsed.filter(isValidGrokAssessment).map((assessment) => ({
+      ...assessment,
+      // Strip Grok citation XML tags from any text fields that may contain them.
+      // Doing this here, as close as possible to the API boundary, ensures the
+      // tags never reach the database or the frontend.
+      currentValue: stripGrokCitationTags(assessment.currentValue),
+      reasoning: stripGrokCitationTags(assessment.reasoning),
+    }));
   } catch {
     return [];
   }
