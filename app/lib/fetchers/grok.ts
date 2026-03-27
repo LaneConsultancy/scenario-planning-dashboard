@@ -31,7 +31,7 @@ Indicators to assess:
 
 7. id: "red-sea-houthi" — Are there ongoing Houthi attacks on shipping (>2/month)? Has Russia threatened or cut pipeline gas to Europe? Check latest Red Sea maritime security updates.
 
-8. id: "fertilizer-price" — What are current UK nitrogen/urea fertilizer prices compared to a year ago? Check AHDB fertilizer price data and industry reports. Also check UK red diesel prices. Threshold: >+40% YoY for fertilizer OR >110 pence per litre for red diesel.`;
+8. id: "fertilizer-price" — What are current UK fertilizer prices (ammonium nitrate, urea) and how do they compare to a year ago? Search for: UK fertilizer price trends 2026, AHDB fertilizer market, CF Fertilisers UK pricing, British Survey of Fertiliser Practice, Profercy nitrogen index. Also check UK red diesel prices (current pence per litre). Threshold: fertilizer >+40% YoY increase OR red diesel >110 pence per litre. If exact AHDB figures aren't available, use industry reports, farmer forums, or news articles about UK fertilizer costs.`;
 }
 
 export function parseGrokResponse(raw: string): GrokAssessment[] {

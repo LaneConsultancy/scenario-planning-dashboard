@@ -27,7 +27,7 @@ export function IndicatorCard({ indicator }: Props) {
             <StatusBadge status={indicator.status} />
             <span className="text-xs" style={{ color: "var(--text-muted)" }}>{CATEGORY_LABELS[indicator.category]}</span>
             {isStale && (
-              <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)", color: "#888" }}>STALE</span>
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)", color: "#9a9ab0" }}>STALE</span>
             )}
           </div>
           <div className="flex gap-5 mt-2">
