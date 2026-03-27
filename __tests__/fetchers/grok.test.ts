@@ -53,4 +53,32 @@ describe("parseGrokResponse", () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("iea-disruption");
   });
+
+  it("drops assessments with invalid status values", () => {
+    const raw = JSON.stringify([
+      {
+        id: "iea-disruption",
+        status: "ORANGE",
+        currentValue: "No upgrade",
+        triggered: false,
+        reasoning: "Stable.",
+      },
+    ]);
+
+    expect(parseGrokResponse(raw)).toEqual([]);
+  });
+
+  it("drops assessments with non-boolean triggered values", () => {
+    const raw = JSON.stringify([
+      {
+        id: "iea-disruption",
+        status: "GREEN",
+        currentValue: "No upgrade",
+        triggered: "false",
+        reasoning: "Stable.",
+      },
+    ]);
+
+    expect(parseGrokResponse(raw)).toEqual([]);
+  });
 });

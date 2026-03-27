@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAllIndicators } from "@/app/lib/fetchers";
+import { isAuthorizedCronRequest } from "@/app/lib/auth";
 import { INDICATOR_DEFINITIONS } from "@/app/lib/indicators";
-import { evaluateIndicatorStatus, calculateCategoryStatus, calculateOverallStatus } from "@/app/lib/traffic-light";
+import { evaluateIndicatorDefinition } from "@/app/lib/indicator-evaluation";
+import { calculateCategoryStatus, calculateOverallStatus } from "@/app/lib/traffic-light";
 import { getDashboardState, saveDashboardState, appendHistory } from "@/app/lib/kv";
 import { sendStatusChangeEmail, sendFetchErrorEmail } from "@/app/lib/email";
 import type { Indicator, DashboardState, Category, FetchResult, GrokAssessment } from "@/app/lib/types";
@@ -10,7 +12,7 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(authHeader, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -28,13 +30,15 @@ export async function POST(request: NextRequest) {
     for (const ind of previousState.indicators) prevMap.set(ind.id, ind);
   }
 
-  const now = new Date().toISOString();
+  const nowDate = new Date();
+  const now = nowDate.toISOString();
   const indicators: Indicator[] = [];
 
   for (const def of INDICATOR_DEFINITIONS) {
     const fetch = fetchMap.get(def.id);
     const grok = grokMap.get(def.id);
     const prev = prevMap.get(def.id);
+    const previousHistory = prev?.history ?? [];
 
     let currentValue = prev?.currentValue ?? "No data";
     let numericValue: number | null = prev?.numericValue ?? null;
@@ -56,11 +60,11 @@ export async function POST(request: NextRequest) {
       numericValue = fetch.numericValue;
       lastUpdated = now;
 
-      const evaluation = evaluateIndicatorStatus(
+      const evaluation = evaluateIndicatorDefinition(
+        def,
         numericValue,
-        def.thresholdValue,
-        def.thresholdDirection,
-        def.warningPercent
+        previousHistory,
+        nowDate
       );
 
       if (evaluation) {

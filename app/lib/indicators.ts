@@ -1,5 +1,8 @@
 import { IndicatorDefinition } from "./types";
 
+const AI_ASSESSMENT = { kind: "ai-assessment" } as const;
+const REFERENCE_ONLY = { kind: "reference-only" } as const;
+
 export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
   // === GEOPOLITICAL ===
   {
@@ -12,6 +15,7 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "WTO Hormuz Trade Tracker + Grok AI",
     fetchTier: "scrape",
+    evaluation: AI_ASSESSMENT,
   },
   {
     id: "red-sea-houthi",
@@ -23,6 +27,7 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "Grok AI (web search)",
     fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
   },
   {
     id: "iea-disruption",
@@ -34,6 +39,7 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "Grok AI (web search)",
     fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
   },
   // === ENERGY ===
   {
@@ -46,6 +52,10 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "AGSI API (Gas Infrastructure Europe)",
     fetchTier: "api",
+    evaluation: {
+      kind: "deadline-threshold",
+      effectiveOn: "2026-06-30T00:00:00.000Z",
+    },
   },
   {
     id: "gas-price",
@@ -57,6 +67,10 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "OilPriceAPI (TTF gas)",
     fetchTier: "api",
+    evaluation: {
+      kind: "sustained-threshold",
+      minimumPoints: 4,
+    },
   },
   {
     id: "industrial-curtailment",
@@ -68,6 +82,7 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "Grok AI (web search)",
     fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
   },
   // === AGRICULTURE ===
   {
@@ -80,6 +95,7 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "AHDB + Grok AI (web search)",
     fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
   },
   {
     id: "nfu-warnings",
@@ -91,6 +107,7 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "GOV.UK Content API + Grok AI",
     fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
   },
   {
     id: "food-inflation",
@@ -102,6 +119,7 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "ONS Beta API",
     fetchTier: "api",
+    evaluation: REFERENCE_ONLY,
   },
   // === POLITICAL ===
   {
@@ -114,6 +132,7 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "GOV.UK Content API + Grok AI",
     fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
   },
   {
     id: "political-stability",
@@ -125,6 +144,7 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "Grok AI (web search)",
     fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
   },
   {
     id: "health-emergency",
@@ -136,6 +156,7 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     warningPercent: 0.8,
     source: "UKHSA Dashboard API",
     fetchTier: "api",
+    evaluation: REFERENCE_ONLY,
   },
 ];
 

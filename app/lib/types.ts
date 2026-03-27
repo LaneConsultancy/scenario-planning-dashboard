@@ -50,6 +50,12 @@ export interface IndicatorDefinition {
   warningPercent: number;
   source: string;
   fetchTier: "api" | "scrape" | "ai";
+  evaluation:
+    | { kind: "ai-assessment" }
+    | { kind: "numeric-threshold" }
+    | { kind: "deadline-threshold"; effectiveOn: string }
+    | { kind: "sustained-threshold"; minimumPoints: number }
+    | { kind: "reference-only" };
 }
 
 export interface FetchResult {

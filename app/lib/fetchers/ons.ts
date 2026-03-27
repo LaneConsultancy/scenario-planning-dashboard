@@ -39,7 +39,7 @@ export async function fetchFoodInflation(): Promise<FetchResult> {
 
   return {
     id: "food-inflation",
-    currentValue: `${rate.toFixed(1)}% annual food CPI (${latest.date})`,
+    currentValue: `${rate.toFixed(1)}% annual food CPI (${latest.date}; reference metric only)`,
     numericValue: rate,
     aiReasoning: null,
     source: "ONS (CPI food & non-alcoholic beverages)",

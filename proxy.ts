@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AUTH_COOKIE_NAME, verifyDashboardSessionValue } from "@/app/lib/auth";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/login" || pathname === "/api/auth") {
@@ -11,8 +12,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const authCookie = request.cookies.get("dashboard-auth");
-  if (authCookie?.value === "authenticated") {
+  const authSecret = process.env.DASHBOARD_AUTH_SECRET;
+  const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
+
+  if (verifyDashboardSessionValue(authCookie?.value, authSecret)) {
     return NextResponse.next();
   }
 

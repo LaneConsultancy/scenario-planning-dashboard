@@ -19,7 +19,7 @@ export async function fetchHealthOutbreaks(): Promise<FetchResult> {
       0
     );
     outbreakCount = weeklyTotal;
-    description = `${weeklyTotal} cases (7-day total, latest available)`;
+    description = `${weeklyTotal} England COVID cases (7-day total; reference metric only)`;
   }
 
   return {

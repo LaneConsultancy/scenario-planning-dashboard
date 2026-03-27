@@ -1,7 +1,35 @@
 import OpenAI from "openai";
-import type { GrokAssessment } from "../types";
+import type { GrokAssessment, Status } from "../types";
 
 const GROK_MODEL = "x-ai/grok-4.1-fast";
+const VALID_GROK_IDS = new Set([
+  "iea-disruption",
+  "industrial-curtailment",
+  "nfu-warnings",
+  "govt-contingency",
+  "political-stability",
+  "hormuz-transit",
+  "red-sea-houthi",
+  "fertilizer-price",
+]);
+const VALID_STATUSES = new Set<Status>(["GREEN", "AMBER", "RED"]);
+
+function isValidGrokAssessment(item: unknown): item is GrokAssessment {
+  if (typeof item !== "object" || item === null) {
+    return false;
+  }
+
+  const candidate = item as Record<string, unknown>;
+  return (
+    typeof candidate.id === "string" &&
+    VALID_GROK_IDS.has(candidate.id) &&
+    typeof candidate.status === "string" &&
+    VALID_STATUSES.has(candidate.status as Status) &&
+    typeof candidate.currentValue === "string" &&
+    typeof candidate.triggered === "boolean" &&
+    typeof candidate.reasoning === "string"
+  );
+}
 
 export function buildGrokPrompt(): string {
   return `You are a UK crisis monitoring system. Assess the following indicators using current web, news, and X/Twitter data. Today's date is ${new Date().toISOString().split("T")[0]}.
@@ -42,16 +70,7 @@ export function parseGrokResponse(raw: string): GrokAssessment[] {
     const parsed = JSON.parse(jsonStr.trim());
     if (!Array.isArray(parsed)) return [];
 
-    return parsed.filter(
-      (item: unknown): item is GrokAssessment =>
-        typeof item === "object" &&
-        item !== null &&
-        "id" in item &&
-        "status" in item &&
-        "currentValue" in item &&
-        "triggered" in item &&
-        "reasoning" in item
-    );
+    return parsed.filter(isValidGrokAssessment);
   } catch {
     return [];
   }
