@@ -21,8 +21,8 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     thresholdValue: 2,
     thresholdDirection: "above",
     warningPercent: 0.8,
-    source: "ACLED API + Grok AI",
-    fetchTier: "api",
+    source: "Grok AI (web search)",
+    fetchTier: "ai",
   },
   {
     id: "iea-disruption",
@@ -123,8 +123,8 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     thresholdValue: 2,
     thresholdDirection: "above",
     warningPercent: 0.8,
-    source: "Electoral Commission + ACLED + Grok AI",
-    fetchTier: "api",
+    source: "Grok AI (web search)",
+    fetchTier: "ai",
   },
   {
     id: "health-emergency",
