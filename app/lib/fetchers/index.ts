@@ -8,44 +8,47 @@ import { fetchFertilizerPrice } from "./ahdb";
 import { fetchHormuzTransit } from "./hormuz";
 import { fetchGrokAssessments } from "./grok";
 
+export interface FetchError {
+  fetcherName: string;
+  error: string;
+}
+
 async function safeFetch<T>(
   name: string,
   fn: () => Promise<T>,
-  fallback: T
-): Promise<T> {
+  errors: FetchError[]
+): Promise<T | null> {
   try {
     return await fn();
   } catch (error) {
-    console.error(`[Fetcher:${name}] Error:`, error);
-    return fallback;
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[Fetcher:${name}] FAILED:`, message);
+    errors.push({ fetcherName: name, error: message });
+    return null;
   }
 }
-
-const EMPTY_RESULT = (id: string): FetchResult => ({
-  id,
-  currentValue: "Data unavailable",
-  numericValue: null,
-  aiReasoning: null,
-  source: "Error fetching data",
-});
 
 export async function fetchAllIndicators(): Promise<{
   results: FetchResult[];
   grokAssessments: GrokAssessment[];
+  errors: FetchError[];
 }> {
+  const errors: FetchError[] = [];
+
   const [gasStorage, gasPrice, foodInflation, houthiAttacks, healthOutbreaks, fertilizerPrice, hormuzTransit] =
     await Promise.all([
-      safeFetch("agsi", fetchGasStorage, EMPTY_RESULT("gas-storage")),
-      safeFetch("oilprice", fetchTTFGasPrice, EMPTY_RESULT("gas-price")),
-      safeFetch("ons", fetchFoodInflation, EMPTY_RESULT("food-inflation")),
-      safeFetch("acled", fetchHouthiAttacks, EMPTY_RESULT("red-sea-houthi")),
-      safeFetch("ukhsa", fetchHealthOutbreaks, EMPTY_RESULT("health-emergency")),
-      safeFetch("ahdb", fetchFertilizerPrice, EMPTY_RESULT("fertilizer-price")),
-      safeFetch("hormuz", fetchHormuzTransit, EMPTY_RESULT("hormuz-transit")),
+      safeFetch("agsi", fetchGasStorage, errors),
+      safeFetch("oilprice", fetchTTFGasPrice, errors),
+      safeFetch("ons", fetchFoodInflation, errors),
+      safeFetch("acled", fetchHouthiAttacks, errors),
+      safeFetch("ukhsa", fetchHealthOutbreaks, errors),
+      safeFetch("ahdb", fetchFertilizerPrice, errors),
+      safeFetch("hormuz", fetchHormuzTransit, errors),
     ]);
 
-  const grokAssessments = await safeFetch("grok", fetchGrokAssessments, []);
+  const grokAssessments = await safeFetch("grok", fetchGrokAssessments, errors);
 
+  // Collect non-null results
   const results: FetchResult[] = [
     gasStorage,
     gasPrice,
@@ -54,7 +57,7 @@ export async function fetchAllIndicators(): Promise<{
     healthOutbreaks,
     fertilizerPrice,
     hormuzTransit,
-  ];
+  ].filter((r): r is FetchResult => r !== null);
 
-  return { results, grokAssessments };
+  return { results, grokAssessments: grokAssessments ?? [], errors };
 }

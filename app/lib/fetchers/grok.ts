@@ -29,7 +29,9 @@ Indicators to assess:
 
 6. id: "hormuz-transit" — What is the current status of shipping through the Strait of Hormuz? What percentage of normal traffic is flowing? Is there any firm reopening date or diplomatic progress? Threshold: <10% of normal traffic.
 
-7. id: "red-sea-houthi" — Are there ongoing Houthi attacks on shipping (>2/month)? Has Russia threatened or cut pipeline gas to Europe? Check latest Red Sea maritime security updates.`;
+7. id: "red-sea-houthi" — Are there ongoing Houthi attacks on shipping (>2/month)? Has Russia threatened or cut pipeline gas to Europe? Check latest Red Sea maritime security updates.
+
+8. id: "fertilizer-price" — What are current UK nitrogen/urea fertilizer prices compared to a year ago? Check AHDB fertilizer price data and industry reports. Also check UK red diesel prices. Threshold: >+40% YoY for fertilizer OR >110 pence per litre for red diesel.`;
 }
 
 export function parseGrokResponse(raw: string): GrokAssessment[] {

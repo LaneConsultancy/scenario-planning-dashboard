@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { buildGrokPrompt, parseGrokResponse } from "@/app/lib/fetchers/grok";
 
 describe("buildGrokPrompt", () => {
-  it("returns a string containing all 7 qualitative indicators", () => {
+  it("returns a string containing all 8 qualitative indicators", () => {
     const prompt = buildGrokPrompt();
     expect(prompt).toContain("IEA");
     expect(prompt).toContain("Industrial curtailment");
@@ -12,6 +12,7 @@ describe("buildGrokPrompt", () => {
     expect(prompt).toContain("Hormuz");
     expect(prompt).toContain("Red Sea");
     expect(prompt).toContain("JSON");
+    expect(prompt).toContain("fertilizer");
   });
 });
 

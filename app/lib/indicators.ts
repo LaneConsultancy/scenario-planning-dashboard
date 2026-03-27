@@ -78,8 +78,8 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     thresholdValue: 40,
     thresholdDirection: "above",
     warningPercent: 0.8,
-    source: "AHDB + FRED API",
-    fetchTier: "scrape",
+    source: "AHDB + Grok AI (web search)",
+    fetchTier: "ai",
   },
   {
     id: "nfu-warnings",

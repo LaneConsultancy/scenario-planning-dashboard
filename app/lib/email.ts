@@ -57,3 +57,51 @@ export async function sendStatusChangeEmail(
     html,
   });
 }
+
+export async function sendFetchErrorEmail(
+  errors: Array<{ fetcherName: string; error: string }>
+): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const alertEmail = process.env.ALERT_EMAIL;
+
+  if (!apiKey || !alertEmail) {
+    console.warn("Email not configured — skipping fetch error alert");
+    return;
+  }
+
+  const resend = new Resend(apiKey);
+
+  const errorList = errors
+    .map((e) => `<li><strong>${e.fetcherName}</strong>: ${e.error}</li>`)
+    .join("\n");
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: #e74c3c; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px;">Data Fetch Failures</h1>
+      </div>
+      <div style="background: #1a1a2e; color: #e0e0e0; padding: 20px; border-radius: 0 0 8px 8px;">
+        <p style="color: #e74c3c; font-weight: bold;">
+          ${errors.length} data source(s) failed during the last refresh. These indicators may have stale data.
+        </p>
+        <ul style="color: #ccc;">${errorList}</ul>
+        <p style="color: #999; font-size: 14px; margin-top: 16px;">
+          Check API keys and service availability. Failed indicators retain their previous values but may be outdated.
+        </p>
+        <p style="margin-top: 20px;">
+          <a href="${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}"
+             style="color: #e74c3c; text-decoration: underline;">
+            View Dashboard →
+          </a>
+        </p>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from: "Paraguay Dashboard <onboarding@resend.dev>",
+    to: alertEmail,
+    subject: `[ERROR] Paraguay Dashboard: ${errors.length} fetch failure(s)`,
+    html,
+  });
+}

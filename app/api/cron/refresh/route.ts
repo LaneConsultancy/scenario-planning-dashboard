@@ -3,7 +3,7 @@ import { fetchAllIndicators } from "@/app/lib/fetchers";
 import { INDICATOR_DEFINITIONS } from "@/app/lib/indicators";
 import { evaluateIndicatorStatus, calculateCategoryStatus, calculateOverallStatus } from "@/app/lib/traffic-light";
 import { getDashboardState, saveDashboardState, appendHistory } from "@/app/lib/kv";
-import { sendStatusChangeEmail } from "@/app/lib/email";
+import { sendStatusChangeEmail, sendFetchErrorEmail } from "@/app/lib/email";
 import type { Indicator, DashboardState, Category, FetchResult, GrokAssessment } from "@/app/lib/types";
 
 export const maxDuration = 60;
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   }
 
   const previousState = await getDashboardState();
-  const { results, grokAssessments } = await fetchAllIndicators();
+  const { results, grokAssessments, errors } = await fetchAllIndicators();
 
   const fetchMap = new Map<string, FetchResult>();
   for (const r of results) fetchMap.set(r.id, r);
@@ -127,10 +127,16 @@ export async function POST(request: NextRequest) {
     await sendStatusChangeEmail(previousState.overall, overall, indicators);
   }
 
+  // Alert on fetch failures
+  if (errors.length > 0) {
+    await sendFetchErrorEmail(errors);
+  }
+
   return NextResponse.json({
     success: true,
     overall,
     triggeredCount,
     indicatorCount: indicators.length,
+    fetchErrors: errors.length > 0 ? errors : undefined,
   });
 }
