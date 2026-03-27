@@ -1,0 +1,59 @@
+import { Resend } from "resend";
+import type { Status, Indicator } from "./types";
+import { ACTION_GUIDANCE } from "./traffic-light";
+
+const STATUS_COLORS: Record<Status, string> = {
+  GREEN: "#2ecc71",
+  AMBER: "#f0c040",
+  RED: "#e74c3c",
+};
+
+export async function sendStatusChangeEmail(
+  previousStatus: Status,
+  newStatus: Status,
+  indicators: Indicator[]
+): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const alertEmail = process.env.ALERT_EMAIL;
+
+  if (!apiKey || !alertEmail) {
+    console.warn("Email not configured — skipping alert");
+    return;
+  }
+
+  const resend = new Resend(apiKey);
+  const triggered = indicators.filter((i) => i.triggered);
+  const color = STATUS_COLORS[newStatus];
+
+  const triggeredList = triggered
+    .map((i) => `<li><strong>${i.name}</strong>: ${i.currentValue}</li>`)
+    .join("\n");
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: ${color}; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px;">Status Changed: ${previousStatus} → ${newStatus}</h1>
+      </div>
+      <div style="background: #1a1a2e; color: #e0e0e0; padding: 20px; border-radius: 0 0 8px 8px;">
+        <p style="font-size: 16px; color: ${color}; font-weight: bold;">
+          ${ACTION_GUIDANCE[newStatus]}
+        </p>
+        <h3 style="color: #999;">Triggered Indicators (${triggered.length}/12)</h3>
+        <ul style="color: #ccc;">${triggeredList || "<li>None</li>"}</ul>
+        <p style="margin-top: 20px;">
+          <a href="${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}"
+             style="color: ${color}; text-decoration: underline;">
+            View Dashboard →
+          </a>
+        </p>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from: "Paraguay Dashboard <onboarding@resend.dev>",
+    to: alertEmail,
+    subject: `[${newStatus}] Paraguay Dashboard: ${previousStatus} → ${newStatus}`,
+    html,
+  });
+}
