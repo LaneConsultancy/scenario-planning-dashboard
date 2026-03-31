@@ -74,7 +74,7 @@ export default async function DashboardPage() {
 
       <div className="flex justify-between px-5 py-3" style={{ background: "var(--bg-secondary)", borderTop: "1px solid var(--border)" }}>
         <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-          Sources: AGSI, OilPriceAPI, ONS, ACLED, UKHSA, GOV.UK, Grok AI via OpenRouter
+          Sources: AGSI, ONS, ACLED, UKHSA, GOV.UK, Grok AI via OpenRouter
         </span>
         <span className="text-xs" style={{ color: "var(--text-muted)" }}>Refreshes every 6 hours</span>
       </div>

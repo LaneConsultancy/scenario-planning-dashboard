@@ -11,6 +11,7 @@ const VALID_GROK_IDS = new Set([
   "hormuz-transit",
   "red-sea-houthi",
   "fertilizer-price",
+  "gas-price",
 ]);
 const VALID_STATUSES = new Set<Status>(["GREEN", "AMBER", "RED"]);
 
@@ -59,7 +60,9 @@ Indicators to assess:
 
 7. id: "red-sea-houthi" — Are there ongoing Houthi attacks on shipping (>2/month)? Has Russia threatened or cut pipeline gas to Europe? Check latest Red Sea maritime security updates.
 
-8. id: "fertilizer-price" — What are current UK fertilizer prices (ammonium nitrate, urea) and how do they compare to a year ago? Search for: UK fertilizer price trends 2026, AHDB fertilizer market, CF Fertilisers UK pricing, British Survey of Fertiliser Practice, Profercy nitrogen index. Also check UK red diesel prices (current pence per litre). Threshold: fertilizer >+40% YoY increase OR red diesel >110 pence per litre. If exact AHDB figures aren't available, use industry reports, farmer forums, or news articles about UK fertilizer costs.`;
+8. id: "fertilizer-price" — What are current UK fertilizer prices (ammonium nitrate, urea) and how do they compare to a year ago? Search for: UK fertilizer price trends 2026, AHDB fertilizer market, CF Fertilisers UK pricing, British Survey of Fertiliser Practice, Profercy nitrogen index. Also check UK red diesel prices (current pence per litre). Threshold: fertilizer >+40% YoY increase OR red diesel >110 pence per litre. If exact AHDB figures aren't available, use industry reports, farmer forums, or news articles about UK fertilizer costs.
+
+9. id: "gas-price" — What is the current Dutch TTF natural gas spot price in EUR/MWh? Convert to UK pence per therm (multiply EUR/MWh by 0.02931 × GBP/EUR rate × 100, or approximate: EUR/MWh × 2.52 ≈ pence/therm at current exchange rates). Search for: TTF gas price today, Dutch TTF spot price, European gas prices. Also check the Ofgem energy price cap — is it above £1,900/year? Threshold: TTF >150 pence/therm sustained OR Ofgem cap >£1,900/year. Report the actual pence/therm figure in currentValue.`;
 }
 
 /**

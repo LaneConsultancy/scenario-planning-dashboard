@@ -65,12 +65,9 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     thresholdValue: 150,
     thresholdDirection: "above",
     warningPercent: 0.8,
-    source: "OilPriceAPI (TTF gas)",
-    fetchTier: "api",
-    evaluation: {
-      kind: "sustained-threshold",
-      minimumPoints: 4,
-    },
+    source: "Grok AI (web search)",
+    fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
   },
   {
     id: "industrial-curtailment",
