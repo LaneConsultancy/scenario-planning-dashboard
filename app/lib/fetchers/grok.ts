@@ -87,6 +87,9 @@ export function stripGrokCitationTags(text: string): string {
   // Remove any self-closing or unclosed <grok:*> or </grok:*> tags left over
   cleaned = cleaned.replace(/<\/?grok:[^>]*>/g, "");
 
+  // Remove bracket-style citations: [web:36], [post:69], [web:114], etc.
+  cleaned = cleaned.replace(/\[(?:web|post|x):\d+\]/g, "");
+
   // Collapse runs of whitespace created by the removals into a single space,
   // then trim leading/trailing whitespace.
   return cleaned.replace(/\s{2,}/g, " ").trim();

@@ -46,10 +46,28 @@ describe("stripGrokCitationTags", () => {
     // No space between "Before" and "after" — no collapsing needed, just tag removal
     expect(stripGrokCitationTags(input)).toBe("Beforeafter");
   });
+
+  it("removes bracket-style [web:N] citations", () => {
+    const input = "Traffic reported as frozen.[web:36][web:38] Prediction markets show low probability.[web:31]";
+    expect(stripGrokCitationTags(input)).toBe(
+      "Traffic reported as frozen. Prediction markets show low probability."
+    );
+  });
+
+  it("removes bracket-style [post:N] and [x:N] citations", () => {
+    const input = "Russia poised to terminate gas sales.[post:78][post:80][web:107]";
+    expect(stripGrokCitationTags(input)).toBe("Russia poised to terminate gas sales.");
+  });
+
+  it("removes mixed XML and bracket citations", () => {
+    const input =
+      'IEA warned<grok:render type="render_inline_citation"><argument name="citation_id">1</argument></grok:render> of disruption.[web:41][web:42]';
+    expect(stripGrokCitationTags(input)).toBe("IEA warned of disruption.");
+  });
 });
 
 describe("buildGrokPrompt", () => {
-  it("returns a string containing all 8 qualitative indicators", () => {
+  it("returns a string containing all 9 Grok-assessed indicators", () => {
     const prompt = buildGrokPrompt();
     expect(prompt).toContain("IEA");
     expect(prompt).toContain("Industrial curtailment");
@@ -60,6 +78,8 @@ describe("buildGrokPrompt", () => {
     expect(prompt).toContain("Red Sea");
     expect(prompt).toContain("JSON");
     expect(prompt).toContain("fertilizer");
+    expect(prompt).toContain("gas-price");
+    expect(prompt).toContain("TTF");
   });
 });
 
