@@ -9,9 +9,10 @@ const LIGHT_CONFIG: Record<Status, { label: string; color: string; shadow: strin
 interface Props {
   status: Status;
   triggeredCount: number;
+  total: number;
 }
 
-export function TrafficLight({ status, triggeredCount }: Props) {
+export function TrafficLight({ status, triggeredCount, total }: Props) {
   const active = LIGHT_CONFIG[status];
   const lights: Status[] = ["GREEN", "AMBER", "RED"];
 
@@ -39,7 +40,7 @@ export function TrafficLight({ status, triggeredCount }: Props) {
         {active.label}
       </div>
       <div className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-        {triggeredCount} of 12 indicators triggered
+        {triggeredCount} of {total} indicators triggered
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import type { Category } from "@/app/lib/types";
 
 export const revalidate = 0;
 
-const CATEGORY_ORDER: Category[] = ["GEOPOLITICAL", "ENERGY", "AGRICULTURE", "POLITICAL"];
+const CATEGORY_ORDER: Category[] = ["GEOPOLITICAL", "ENERGY", "AGRICULTURE", "POLITICAL", "CIVIL_LIBERTIES"];
 
 export default async function DashboardPage() {
   let state = null;
@@ -48,19 +48,23 @@ export default async function DashboardPage() {
       </div>
 
       <div className="py-8 text-center">
-        <TrafficLight status={state.overall} triggeredCount={state.triggeredCount} />
+        <TrafficLight status={state.overall} triggeredCount={state.triggeredCount} total={state.indicators.length} />
         <ActionBanner status={state.overall} />
       </div>
 
-      <div className="px-5 pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {CATEGORY_ORDER.map((cat) => (
-          <CategoryCard
-            key={cat}
-            category={cat}
-            summary={state.categories[cat]}
-            indicators={state.indicators.filter((i) => i.category === cat)}
-          />
-        ))}
+      <div className="px-5 pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {CATEGORY_ORDER.map((cat) => {
+          const summary = state.categories[cat];
+          if (!summary) return null;
+          return (
+            <CategoryCard
+              key={cat}
+              category={cat}
+              summary={summary}
+              indicators={state.indicators.filter((i) => i.category === cat)}
+            />
+          );
+        })}
       </div>
 
       <div className="px-5 pb-8">

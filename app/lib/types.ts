@@ -1,6 +1,6 @@
 export type Status = "GREEN" | "AMBER" | "RED";
 
-export type Category = "GEOPOLITICAL" | "ENERGY" | "AGRICULTURE" | "POLITICAL";
+export type Category = "GEOPOLITICAL" | "ENERGY" | "AGRICULTURE" | "POLITICAL" | "CIVIL_LIBERTIES";
 
 export interface HistoryEntry {
   value: number | null;

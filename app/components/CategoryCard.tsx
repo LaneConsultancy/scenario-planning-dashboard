@@ -3,7 +3,7 @@ import { Sparkline } from "./Sparkline";
 
 const STATUS_COLOR: Record<Status, string> = { GREEN: "#2ecc71", AMBER: "#f0c040", RED: "#e74c3c" };
 const CATEGORY_LABELS: Record<string, string> = {
-  GEOPOLITICAL: "Geopolitical", ENERGY: "Energy", AGRICULTURE: "Agriculture", POLITICAL: "Political",
+  GEOPOLITICAL: "Geopolitical", ENERGY: "Energy", AGRICULTURE: "Agriculture", POLITICAL: "Political", CIVIL_LIBERTIES: "Civil Liberties",
 };
 
 interface Props {

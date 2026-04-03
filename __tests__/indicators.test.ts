@@ -6,15 +6,16 @@ import {
 } from "@/app/lib/indicators";
 
 describe("INDICATOR_DEFINITIONS", () => {
-  it("has exactly 12 indicators", () => {
-    expect(INDICATOR_DEFINITIONS).toHaveLength(12);
+  it("has exactly 15 indicators", () => {
+    expect(INDICATOR_DEFINITIONS).toHaveLength(15);
   });
 
-  it("has 3 indicators per category", () => {
+  it("has correct indicators per category", () => {
     expect(getDefinitionsByCategory("GEOPOLITICAL")).toHaveLength(3);
     expect(getDefinitionsByCategory("ENERGY")).toHaveLength(3);
     expect(getDefinitionsByCategory("AGRICULTURE")).toHaveLength(3);
     expect(getDefinitionsByCategory("POLITICAL")).toHaveLength(3);
+    expect(getDefinitionsByCategory("CIVIL_LIBERTIES")).toHaveLength(3);
   });
 
   it("all indicators have unique ids", () => {

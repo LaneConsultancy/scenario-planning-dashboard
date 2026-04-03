@@ -155,6 +155,43 @@ export const INDICATOR_DEFINITIONS: IndicatorDefinition[] = [
     fetchTier: "api",
     evaluation: REFERENCE_ONLY,
   },
+  // === CIVIL_LIBERTIES ===
+  {
+    id: "uk-military-draft",
+    category: "CIVIL_LIBERTIES",
+    name: "UK Military Conscription Policy",
+    threshold: "Bill introduced, consultation launched, or white paper proposing mandatory national service or expanded conscription",
+    thresholdValue: null,
+    thresholdDirection: "above",
+    warningPercent: 0.8,
+    source: "Grok AI (web search)",
+    fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
+  },
+  {
+    id: "uk-digital-id",
+    category: "CIVIL_LIBERTIES",
+    name: "UK Mandatory Digital ID",
+    threshold: "Bill introduced or consultation launched proposing mandatory digital identity for services, banking, travel, or employment",
+    thresholdValue: null,
+    thresholdDirection: "above",
+    warningPercent: 0.8,
+    source: "Grok AI (web search)",
+    fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
+  },
+  {
+    id: "uk-digital-currency",
+    category: "CIVIL_LIBERTIES",
+    name: "UK Digital Currency / Cash Restrictions",
+    threshold: "Bill introduced, consultation completed, or white paper proposing mandatory digital pound or restrictions on cash transactions",
+    thresholdValue: null,
+    thresholdDirection: "above",
+    warningPercent: 0.8,
+    source: "Grok AI (web search)",
+    fetchTier: "ai",
+    evaluation: AI_ASSESSMENT,
+  },
 ];
 
 export function getDefinition(id: string): IndicatorDefinition {

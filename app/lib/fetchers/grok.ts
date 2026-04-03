@@ -12,6 +12,9 @@ const VALID_GROK_IDS = new Set([
   "red-sea-houthi",
   "fertilizer-price",
   "gas-price",
+  "uk-military-draft",
+  "uk-digital-id",
+  "uk-digital-currency",
 ]);
 const VALID_STATUSES = new Set<Status>(["GREEN", "AMBER", "RED"]);
 
@@ -62,7 +65,13 @@ Indicators to assess:
 
 8. id: "fertilizer-price" — What are current UK fertilizer prices (ammonium nitrate, urea) and how do they compare to a year ago? Search for: UK fertilizer price trends 2026, AHDB fertilizer market, CF Fertilisers UK pricing, British Survey of Fertiliser Practice, Profercy nitrogen index. Also check UK red diesel prices (current pence per litre). Threshold: fertilizer >+40% YoY increase OR red diesel >110 pence per litre. If exact AHDB figures aren't available, use industry reports, farmer forums, or news articles about UK fertilizer costs.
 
-9. id: "gas-price" — What is the current Dutch TTF natural gas spot price in EUR/MWh? Convert to UK pence per therm (multiply EUR/MWh by 0.02931 × GBP/EUR rate × 100, or approximate: EUR/MWh × 2.52 ≈ pence/therm at current exchange rates). Search for: TTF gas price today, Dutch TTF spot price, European gas prices. Also check the Ofgem energy price cap — is it above £1,900/year? Threshold: TTF >150 pence/therm sustained OR Ofgem cap >£1,900/year. Report the actual pence/therm figure in currentValue.`;
+9. id: "gas-price" — What is the current Dutch TTF natural gas spot price in EUR/MWh? Convert to UK pence per therm (multiply EUR/MWh by 0.02931 × GBP/EUR rate × 100, or approximate: EUR/MWh × 2.52 ≈ pence/therm at current exchange rates). Search for: TTF gas price today, Dutch TTF spot price, European gas prices. Also check the Ofgem energy price cap — is it above £1,900/year? Threshold: TTF >150 pence/therm sustained OR Ofgem cap >£1,900/year. Report the actual pence/therm figure in currentValue.
+
+10. id: "uk-military-draft" — Is the UK government advancing any form of mandatory national service, military conscription, or expanded draft legislation? Search for: UK national service bill 2026, conscription policy UK, mandatory military service UK, Defence Select Committee conscription, National Service (Reinstatement) Bill. Check Parliamentary bills (parliament.uk), white papers, government consultations, and ministerial statements. Include draft legislation, pre-legislative proposals, and any expansion of existing reserve forces obligations. Threshold: any bill introduced to Parliament, formal consultation launched, or white paper published proposing mandatory national service or expanded conscription powers.
+
+11. id: "uk-digital-id" — Is the UK government advancing mandatory digital identity legislation? Search for: UK digital identity bill 2026, GOV.UK One Login mandatory, digital ID legislation UK, Data Protection and Digital Information Bill digital identity provisions, DSIT digital identity trust framework mandatory, digital verification services. Check Parliamentary bills (parliament.uk), white papers, DSIT consultations, and ministerial statements. Include draft legislation and proposals that would require digital ID for accessing government services, banking, travel, or employment. Threshold: any bill introduced or consultation launched proposing mandatory digital identity requirements.
+
+12. id: "uk-digital-currency" — Is the UK government advancing CBDC (central bank digital currency) legislation or restricting cash usage? Search for: digital pound bill 2026, UK CBDC legislation, Bank of England digital currency consultation, Britcoin, HM Treasury digital pound, cashless society UK legislation, cash acceptance law UK, Access to Cash. Check Parliamentary bills (parliament.uk), HM Treasury consultations, Bank of England publications, and ministerial statements. Include draft legislation and pre-legislative proposals. Threshold: any bill introduced, formal consultation completed with move to implementation, or white paper published proposing a mandatory digital pound or statutory restrictions on cash transactions.`;
 }
 
 /**

@@ -38,7 +38,7 @@ export async function sendStatusChangeEmail(
         <p style="font-size: 16px; color: ${color}; font-weight: bold;">
           ${ACTION_GUIDANCE[newStatus]}
         </p>
-        <h3 style="color: #999;">Triggered Indicators (${triggered.length}/12)</h3>
+        <h3 style="color: #999;">Triggered Indicators (${triggered.length}/${indicators.length})</h3>
         <ul style="color: #ccc;">${triggeredList || "<li>None</li>"}</ul>
         <p style="margin-top: 20px;">
           <a href="${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}"

@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
   }
 
   const categories = {} as DashboardState["categories"];
-  const categoryNames: Category[] = ["GEOPOLITICAL", "ENERGY", "AGRICULTURE", "POLITICAL"];
+  const categoryNames: Category[] = ["GEOPOLITICAL", "ENERGY", "AGRICULTURE", "POLITICAL", "CIVIL_LIBERTIES"];
   for (const cat of categoryNames) {
     const catIndicators = indicators.filter((i) => i.category === cat);
     categories[cat] = calculateCategoryStatus(catIndicators);
