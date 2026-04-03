@@ -3,6 +3,8 @@ import { TrafficLight } from "@/app/components/TrafficLight";
 import { ActionBanner } from "@/app/components/ActionBanner";
 import { CategoryCard } from "@/app/components/CategoryCard";
 import { IndicatorCard } from "@/app/components/IndicatorCard";
+import { WeeklyTrend } from "@/app/components/WeeklyTrend";
+import { calculateWeeklyTrend } from "@/app/lib/trend";
 import type { Category } from "@/app/lib/types";
 
 export const revalidate = 0;
@@ -67,6 +69,8 @@ export default async function DashboardPage() {
         })}
       </div>
 
+      <WeeklyTrend trend={calculateWeeklyTrend(state.indicators)} />
+
       <div className="px-5 pb-8">
         <div className="text-xs uppercase tracking-widest mb-3" style={{ color: "var(--text-secondary)" }}>
           Indicator Details
@@ -80,7 +84,7 @@ export default async function DashboardPage() {
         <span className="text-xs" style={{ color: "var(--text-muted)" }}>
           Sources: AGSI, ONS, ACLED, UKHSA, GOV.UK, Grok AI via OpenRouter
         </span>
-        <span className="text-xs" style={{ color: "var(--text-muted)" }}>Refreshes every 6 hours</span>
+        <span className="text-xs" style={{ color: "var(--text-muted)" }}>Refreshes every 12 hours</span>
       </div>
     </div>
   );

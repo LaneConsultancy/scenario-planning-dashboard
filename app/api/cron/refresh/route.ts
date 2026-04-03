@@ -10,6 +10,10 @@ import type { Indicator, DashboardState, Category, FetchResult, GrokAssessment }
 
 export const maxDuration = 60;
 
+export async function GET(request: NextRequest) {
+  return POST(request);
+}
+
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (!isAuthorizedCronRequest(authHeader, process.env.CRON_SECRET)) {
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
 
   const triggeredCount = indicators.filter((i) => i.triggered).length;
   const overall = calculateOverallStatus(triggeredCount);
-  const nextRefresh = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
+  const nextRefresh = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
 
   const state: DashboardState = {
     overall,
