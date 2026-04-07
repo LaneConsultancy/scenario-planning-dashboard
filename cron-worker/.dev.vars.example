@@ -1,0 +1,3 @@
+DASHBOARD_URL=https://your-dashboard.vercel.app
+CRON_SECRET=changeme
+TRIGGER_SECRET=changeme

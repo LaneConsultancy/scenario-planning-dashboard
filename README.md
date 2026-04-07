@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Paraguay Decision Dashboard
 
-## Getting Started
+A personal crisis-monitoring tool that tracks 15 geopolitical, energy, agriculture, political, and civil liberties indicators to inform a UK-to-Paraguay relocation decision. Uses a traffic-light system (GREEN/AMBER/RED) based on observable tripwires.
 
-First, run the development server:
+## How It Works
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **15 indicators** across 5 categories, each with defined thresholds
+- **Automated data pipeline** fetches from 7 API/scrape sources + Grok AI assessments twice daily
+- **Traffic light logic**: 0-1 triggered = GREEN, 2-3 = AMBER, 4+ = RED
+- **Email alerts** on status changes or fetch failures
+- **Password-protected** dashboard with dark theme UI
+
+## Tech Stack
+
+- **Dashboard**: Next.js 16, React 19, Tailwind CSS 4, TypeScript
+- **Data store**: Upstash Redis
+- **AI assessments**: Grok via OpenRouter (12 qualitative indicators)
+- **Scheduling**: Cloudflare Worker (cron) triggers dashboard refresh
+- **Email**: Resend
+- **Hosting**: Vercel (dashboard) + Cloudflare Workers (cron)
+
+## Repository Structure
+
+```
+dashboard/          Next.js app — UI and API routes
+cron-worker/        Cloudflare Worker — daily cron trigger
+triggers.md         Indicator definitions and thresholds
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Prerequisites
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js 20+
+- API keys for: Upstash Redis, OpenRouter, AGSI (Gas Infrastructure Europe), Resend
 
-## Learn More
+### Dashboard
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cd dashboard
+npm install
+cp .env.local.example .env.local
+# Fill in your API keys in .env.local
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+See `dashboard/.env.local.example` for the full list of required environment variables.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Cron Worker
 
-## Deploy on Vercel
+```bash
+cd cron-worker
+npm install
+cp .dev.vars.example .dev.vars
+# Fill in your dashboard URL and secrets
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Architecture
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+Cloudflare Worker (cron 08:00 & 20:00 UTC)
+    │
+    ▼
+POST /api/cron/refresh (Bearer token auth)
+    │
+    ├── Fetch Tier 1: AGSI, OilPrice, ONS, ACLED, UKHSA (parallel)
+    ├── Fetch Tier 2: AHDB, Hormuz scraping (parallel)
+    └── Fetch Tier 3: Grok AI — 12 qualitative assessments
+    │
+    ▼
+Evaluate thresholds → Store to Redis → Email if status changed
+    │
+    ▼
+Dashboard (server component) reads from Redis and renders
+```
+
+## Data Sources
+
+| Source | Indicators |
+|--------|-----------|
+| AGSI API | EU gas storage fill % |
+| TTF gas price | Wholesale gas price |
+| ONS Beta API | UK food CPI inflation |
+| ACLED API | Houthi attack count |
+| UKHSA Dashboard | Health outbreak cases |
+| AHDB | Fertilizer prices |
+| Web scraping | Hormuz transit data |
+| Grok AI (OpenRouter) | 12 qualitative assessments |
+
+## Commands
+
+### Dashboard
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Dev server (localhost:3000) |
+| `npm run build` | Production build |
+| `npm run start` | Serve production build |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest (single run) |
+
+### Cron Worker
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Wrangler local dev |
+| `npm run deploy` | Deploy to Cloudflare Workers |
+
+## License
+
+[MIT](LICENSE)
