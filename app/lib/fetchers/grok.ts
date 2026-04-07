@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { GrokAssessment, Status } from "../types";
+import type { GrokAssessment, Status, Indicator } from "../types";
 
 const GROK_MODEL = "x-ai/grok-4.1-fast";
 const VALID_GROK_IDS = new Set([
@@ -35,8 +35,30 @@ function isValidGrokAssessment(item: unknown): item is GrokAssessment {
   );
 }
 
-export function buildGrokPrompt(): string {
-  return `You are a UK crisis monitoring system. Assess the following indicators using current web, news, and X/Twitter data. Today's date is ${new Date().toISOString().split("T")[0]}.
+function buildIndicatorContext(
+  id: string,
+  previousIndicators: Indicator[]
+): string {
+  const prev = previousIndicators.find((p) => p.id === id);
+  if (!prev || !prev.aiReasoning) return "";
+
+  const now = new Date();
+  let durationInfo = "";
+  if (prev.triggered && prev.triggerDate) {
+    const days = Math.round(
+      (now.getTime() - new Date(prev.triggerDate).getTime()) / 86400000
+    );
+    durationInfo = ` — triggered since ${prev.triggerDate.split("T")[0]} (${days} days)`;
+  }
+
+  return `
+   PREVIOUS ASSESSMENT (${prev.lastUpdated.split("T")[0]}): ${prev.status}${durationInfo}
+   Previous reasoning: "${prev.aiReasoning}"
+   STATUS CHANGE RULES: To downgrade severity (RED→AMBER or GREEN), you MUST cite specific NEW developments since the last assessment. If the situation is unchanged, maintain the current status. Upgrading severity requires only current evidence.`;
+}
+
+export function buildGrokPrompt(previousIndicators: Indicator[] = []): string {
+  const preamble = `You are a UK crisis monitoring system. Assess the following indicators using current web, news, and X/Twitter data. Today's date is ${new Date().toISOString().split("T")[0]}.
 
 For EACH indicator, return a JSON object with these exact fields:
 - id (string): the indicator ID exactly as given
@@ -47,31 +69,67 @@ For EACH indicator, return a JSON object with these exact fields:
 
 Return a JSON array of objects. No markdown, no explanation outside the JSON.
 
-Indicators to assess:
+Indicators to assess:`;
 
-1. id: "iea-disruption" — Has the IEA upgraded its assessment to "largest disruption in history"? Is there a de-escalation roadmap? Threshold: IEA uses that specific language with no de-escalation by July 2026.
+  const indicators: { id: string; text: string }[] = [
+    {
+      id: "iea-disruption",
+      text: `id: "iea-disruption" — Has the IEA upgraded its assessment to "largest disruption in history"? Is there a de-escalation roadmap? Threshold: IEA uses that specific language with no de-escalation by July 2026.`,
+    },
+    {
+      id: "industrial-curtailment",
+      text: `id: "industrial-curtailment" — Industrial curtailment check: How many major UK chemical, steel, or fertilizer plants have announced gas-related force majeure or curtailment? Threshold: >3 plants.`,
+    },
+    {
+      id: "nfu-warnings",
+      text: `id: "nfu-warnings" — Has the NFU or Defra issued a formal "food production at risk" statement? Are >20% of arable farmers reporting reduced planting? Check NFU press releases and Defra publications.`,
+    },
+    {
+      id: "govt-contingency",
+      text: `id: "govt-contingency" — Government contingency check: Has any UK minister or DESNZ made statements about "targeted measures," called an emergency summit, or announced subsidy caps related to energy? Look for language shift from denial to contingency planning.`,
+    },
+    {
+      id: "political-stability",
+      text: `id: "political-stability" — Political stability check: Has Labour lost >2 by-elections since January 2026? Have cost-of-living protests turned violent or widespread? Check recent UK political news.`,
+    },
+    {
+      id: "hormuz-transit",
+      text: `id: "hormuz-transit" — What is the current status of shipping through the Strait of Hormuz? What percentage of normal traffic is flowing? Is there any firm reopening date or diplomatic progress? Threshold: <10% of normal traffic.`,
+    },
+    {
+      id: "red-sea-houthi",
+      text: `id: "red-sea-houthi" — Are there ongoing Houthi attacks on shipping (>2/month)? Has Russia threatened or cut pipeline gas to Europe? Check latest Red Sea maritime security updates.`,
+    },
+    {
+      id: "fertilizer-price",
+      text: `id: "fertilizer-price" — What are current UK fertilizer prices (ammonium nitrate, urea) and how do they compare to a year ago? Search for: UK fertilizer price trends 2026, AHDB fertilizer market, CF Fertilisers UK pricing, British Survey of Fertiliser Practice, Profercy nitrogen index. Also check UK red diesel prices (current pence per litre). Threshold: fertilizer >+40% YoY increase OR red diesel >110 pence per litre. If exact AHDB figures aren't available, use industry reports, farmer forums, or news articles about UK fertilizer costs.`,
+    },
+    {
+      id: "gas-price",
+      text: `id: "gas-price" — What is the current Dutch TTF natural gas spot price in EUR/MWh? Convert to UK pence per therm (multiply EUR/MWh by 0.02931 × GBP/EUR rate × 100, or approximate: EUR/MWh × 2.52 ≈ pence/therm at current exchange rates). Search for: TTF gas price today, Dutch TTF spot price, European gas prices. Also check the Ofgem energy price cap — is it above £1,900/year? Threshold: TTF >150 pence/therm sustained OR Ofgem cap >£1,900/year. Report the actual pence/therm figure in currentValue.`,
+    },
+    {
+      id: "uk-military-draft",
+      text: `id: "uk-military-draft" — Is the UK government advancing any form of mandatory national service, military conscription, or expanded draft legislation? Search for: UK national service bill 2026, conscription policy UK, mandatory military service UK, Defence Select Committee conscription, National Service (Reinstatement) Bill. Check Parliamentary bills (parliament.uk), white papers, government consultations, and ministerial statements. Include draft legislation, pre-legislative proposals, and any expansion of existing reserve forces obligations. Threshold: any bill introduced to Parliament, formal consultation launched, or white paper published proposing mandatory national service or expanded conscription powers.`,
+    },
+    {
+      id: "uk-digital-id",
+      text: `id: "uk-digital-id" — Is the UK government advancing mandatory digital identity legislation? Search for: UK digital identity bill 2026, GOV.UK One Login mandatory, digital ID legislation UK, Data Protection and Digital Information Bill digital identity provisions, DSIT digital identity trust framework mandatory, digital verification services. Check Parliamentary bills (parliament.uk), white papers, DSIT consultations, and ministerial statements. Include draft legislation and proposals that would require digital ID for accessing government services, banking, travel, or employment. Threshold: any bill introduced or consultation launched proposing mandatory digital identity requirements.`,
+    },
+    {
+      id: "uk-digital-currency",
+      text: `id: "uk-digital-currency" — Is the UK government advancing CBDC (central bank digital currency) legislation or restricting cash usage? Search for: digital pound bill 2026, UK CBDC legislation, Bank of England digital currency consultation, Britcoin, HM Treasury digital pound, cashless society UK legislation, cash acceptance law UK, Access to Cash. Check Parliamentary bills (parliament.uk), HM Treasury consultations, Bank of England publications, and ministerial statements. Include draft legislation and pre-legislative proposals. Threshold: any bill introduced, formal consultation completed with move to implementation, or white paper published proposing a mandatory digital pound or statutory restrictions on cash transactions.`,
+    },
+  ];
 
-2. id: "industrial-curtailment" — Industrial curtailment check: How many major UK chemical, steel, or fertilizer plants have announced gas-related force majeure or curtailment? Threshold: >3 plants.
+  const indicatorBlocks = indicators
+    .map((indicator, index) => {
+      const context = buildIndicatorContext(indicator.id, previousIndicators);
+      return `\n${index + 1}. ${indicator.text}${context}`;
+    })
+    .join("\n");
 
-3. id: "nfu-warnings" — Has the NFU or Defra issued a formal "food production at risk" statement? Are >20% of arable farmers reporting reduced planting? Check NFU press releases and Defra publications.
-
-4. id: "govt-contingency" — Government contingency check: Has any UK minister or DESNZ made statements about "targeted measures," called an emergency summit, or announced subsidy caps related to energy? Look for language shift from denial to contingency planning.
-
-5. id: "political-stability" — Political stability check: Has Labour lost >2 by-elections since January 2026? Have cost-of-living protests turned violent or widespread? Check recent UK political news.
-
-6. id: "hormuz-transit" — What is the current status of shipping through the Strait of Hormuz? What percentage of normal traffic is flowing? Is there any firm reopening date or diplomatic progress? Threshold: <10% of normal traffic.
-
-7. id: "red-sea-houthi" — Are there ongoing Houthi attacks on shipping (>2/month)? Has Russia threatened or cut pipeline gas to Europe? Check latest Red Sea maritime security updates.
-
-8. id: "fertilizer-price" — What are current UK fertilizer prices (ammonium nitrate, urea) and how do they compare to a year ago? Search for: UK fertilizer price trends 2026, AHDB fertilizer market, CF Fertilisers UK pricing, British Survey of Fertiliser Practice, Profercy nitrogen index. Also check UK red diesel prices (current pence per litre). Threshold: fertilizer >+40% YoY increase OR red diesel >110 pence per litre. If exact AHDB figures aren't available, use industry reports, farmer forums, or news articles about UK fertilizer costs.
-
-9. id: "gas-price" — What is the current Dutch TTF natural gas spot price in EUR/MWh? Convert to UK pence per therm (multiply EUR/MWh by 0.02931 × GBP/EUR rate × 100, or approximate: EUR/MWh × 2.52 ≈ pence/therm at current exchange rates). Search for: TTF gas price today, Dutch TTF spot price, European gas prices. Also check the Ofgem energy price cap — is it above £1,900/year? Threshold: TTF >150 pence/therm sustained OR Ofgem cap >£1,900/year. Report the actual pence/therm figure in currentValue.
-
-10. id: "uk-military-draft" — Is the UK government advancing any form of mandatory national service, military conscription, or expanded draft legislation? Search for: UK national service bill 2026, conscription policy UK, mandatory military service UK, Defence Select Committee conscription, National Service (Reinstatement) Bill. Check Parliamentary bills (parliament.uk), white papers, government consultations, and ministerial statements. Include draft legislation, pre-legislative proposals, and any expansion of existing reserve forces obligations. Threshold: any bill introduced to Parliament, formal consultation launched, or white paper published proposing mandatory national service or expanded conscription powers.
-
-11. id: "uk-digital-id" — Is the UK government advancing mandatory digital identity legislation? Search for: UK digital identity bill 2026, GOV.UK One Login mandatory, digital ID legislation UK, Data Protection and Digital Information Bill digital identity provisions, DSIT digital identity trust framework mandatory, digital verification services. Check Parliamentary bills (parliament.uk), white papers, DSIT consultations, and ministerial statements. Include draft legislation and proposals that would require digital ID for accessing government services, banking, travel, or employment. Threshold: any bill introduced or consultation launched proposing mandatory digital identity requirements.
-
-12. id: "uk-digital-currency" — Is the UK government advancing CBDC (central bank digital currency) legislation or restricting cash usage? Search for: digital pound bill 2026, UK CBDC legislation, Bank of England digital currency consultation, Britcoin, HM Treasury digital pound, cashless society UK legislation, cash acceptance law UK, Access to Cash. Check Parliamentary bills (parliament.uk), HM Treasury consultations, Bank of England publications, and ministerial statements. Include draft legislation and pre-legislative proposals. Threshold: any bill introduced, formal consultation completed with move to implementation, or white paper published proposing a mandatory digital pound or statutory restrictions on cash transactions.`;
+  return `${preamble}\n${indicatorBlocks}`;
 }
 
 /**
