@@ -3,7 +3,6 @@ import {
   compareSeverity,
   applyHysteresis,
 } from "@/app/lib/hysteresis";
-import type { Status } from "@/app/lib/types";
 
 describe("compareSeverity", () => {
   it("returns 0 for equal statuses", () => {
