@@ -183,7 +183,7 @@ export function parseGrokResponse(raw: string): GrokAssessment[] {
   }
 }
 
-export async function fetchGrokAssessments(): Promise<GrokAssessment[]> {
+export async function fetchGrokAssessments(previousIndicators: Indicator[] = []): Promise<GrokAssessment[]> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY not set");
 
@@ -192,7 +192,7 @@ export async function fetchGrokAssessments(): Promise<GrokAssessment[]> {
     apiKey,
   });
 
-  const prompt = buildGrokPrompt();
+  const prompt = buildGrokPrompt(previousIndicators);
 
   const response = await client.chat.completions.create({
     model: GROK_MODEL,

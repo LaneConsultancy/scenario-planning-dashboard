@@ -1,4 +1,4 @@
-import type { FetchResult, GrokAssessment } from "../types";
+import type { FetchResult, GrokAssessment, Indicator } from "../types";
 import { fetchGasStorage } from "./agsi";
 import { fetchTTFGasPrice } from "./oilprice";
 import { fetchFoodInflation } from "./ons";
@@ -28,7 +28,7 @@ async function safeFetch<T>(
   }
 }
 
-export async function fetchAllIndicators(): Promise<{
+export async function fetchAllIndicators(previousIndicators: Indicator[] = []): Promise<{
   results: FetchResult[];
   grokAssessments: GrokAssessment[];
   errors: FetchError[];
@@ -46,7 +46,7 @@ export async function fetchAllIndicators(): Promise<{
       safeFetch("hormuz", fetchHormuzTransit, errors),
     ]);
 
-  const grokAssessments = await safeFetch("grok", fetchGrokAssessments, errors);
+  const grokAssessments = await safeFetch("grok", () => fetchGrokAssessments(previousIndicators), errors);
 
   // Collect non-null results
   const results: FetchResult[] = [
