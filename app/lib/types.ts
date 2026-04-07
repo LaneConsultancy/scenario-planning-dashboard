@@ -4,6 +4,7 @@ export type Category = "GEOPOLITICAL" | "ENERGY" | "AGRICULTURE" | "POLITICAL" |
 
 export interface HistoryEntry {
   value: number | null;
+  status?: Status;
   date: string;
 }
 
@@ -21,6 +22,7 @@ export interface Indicator {
   lastUpdated: string;
   triggered: boolean;
   triggerDate: string | null;
+  downgradeStreak: number;
   aiReasoning: string | null;
   history: HistoryEntry[];
 }
