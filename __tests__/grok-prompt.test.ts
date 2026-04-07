@@ -4,7 +4,6 @@ import type { Indicator, Status } from "@/app/lib/types";
 
 function makeIndicator(overrides: Partial<Indicator> & { id: string }): Indicator {
   return {
-    id: overrides.id,
     category: "GEOPOLITICAL",
     name: "Test Indicator",
     status: "GREEN" as Status,

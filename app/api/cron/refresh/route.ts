@@ -6,6 +6,7 @@ import { evaluateIndicatorDefinition } from "@/app/lib/indicator-evaluation";
 import { calculateCategoryStatus, calculateOverallStatus } from "@/app/lib/traffic-light";
 import { getDashboardState, saveDashboardState, appendHistory } from "@/app/lib/kv";
 import { sendStatusChangeEmail, sendFetchErrorEmail } from "@/app/lib/email";
+import { applyHysteresis } from "@/app/lib/hysteresis";
 import type { Indicator, DashboardState, Category, FetchResult, GrokAssessment } from "@/app/lib/types";
 
 export const maxDuration = 60;
@@ -21,7 +22,8 @@ export async function POST(request: NextRequest) {
   }
 
   const previousState = await getDashboardState();
-  const { results, grokAssessments, errors } = await fetchAllIndicators();
+  const previousIndicators = previousState?.indicators ?? [];
+  const { results, grokAssessments, errors } = await fetchAllIndicators(previousIndicators);
 
   const fetchMap = new Map<string, FetchResult>();
   for (const r of results) fetchMap.set(r.id, r);
@@ -50,13 +52,33 @@ export async function POST(request: NextRequest) {
     let status = prev?.status ?? ("GREEN" as const);
     let triggered = prev?.triggered ?? false;
     let lastUpdated = prev?.lastUpdated ?? now;
+    let downgradeStreak = prev?.downgradeStreak ?? 0;
 
     if (grok) {
+      // Always update currentValue with fresh factual data
       currentValue = grok.currentValue;
-      status = grok.status;
-      triggered = grok.triggered;
-      aiReasoning = grok.reasoning;
       lastUpdated = now;
+
+      // Normalize impossible combinations: triggered must align with RED
+      const normalizedTriggered = grok.status === "RED" ? grok.triggered : false;
+
+      // Apply hysteresis to severity changes
+      const hysteresis = applyHysteresis({
+        proposedStatus: grok.status,
+        proposedTriggered: normalizedTriggered,
+        currentStatus: status,
+        currentTriggered: triggered,
+        downgradeStreak,
+      });
+
+      status = hysteresis.effectiveStatus;
+      triggered = hysteresis.effectiveTriggered;
+      downgradeStreak = hysteresis.downgradeStreak;
+
+      // Only update aiReasoning when the assessment is applied (not held)
+      if (hysteresis.applied) {
+        aiReasoning = grok.reasoning;
+      }
     }
 
     if (fetch && fetch.currentValue !== "Data unavailable" && fetch.currentValue !== "Pending Grok AI assessment") {
@@ -74,6 +96,8 @@ export async function POST(request: NextRequest) {
       if (evaluation) {
         status = evaluation.status;
         triggered = evaluation.triggered;
+        // Non-AI indicators don't use hysteresis — their evaluation is deterministic
+        downgradeStreak = 0;
       }
     }
 
@@ -88,7 +112,11 @@ export async function POST(request: NextRequest) {
       triggerDate = null;
     }
 
-    const history = await appendHistory(def.id, { value: numericValue, date: now });
+    const history = await appendHistory(def.id, {
+      value: numericValue,
+      status,
+      date: now,
+    });
 
     indicators.push({
       id: def.id,
@@ -104,6 +132,7 @@ export async function POST(request: NextRequest) {
       lastUpdated,
       triggered,
       triggerDate,
+      downgradeStreak,
       aiReasoning,
       history,
     });

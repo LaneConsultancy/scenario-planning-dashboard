@@ -21,6 +21,7 @@ function makeIndicator(overrides: Partial<Indicator> = {}): Indicator {
     lastUpdated: new Date().toISOString(),
     triggered: false,
     triggerDate: null,
+    downgradeStreak: 0,
     aiReasoning: null,
     history: [],
     ...overrides,
