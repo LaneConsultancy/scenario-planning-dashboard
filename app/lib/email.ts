@@ -50,12 +50,16 @@ export async function sendStatusChangeEmail(
     </div>
   `;
 
-  await resend.emails.send({
-    from: "Paraguay Dashboard <onboarding@resend.dev>",
-    to: alertEmail,
-    subject: `[${newStatus}] Paraguay Dashboard: ${previousStatus} → ${newStatus}`,
-    html,
-  });
+  try {
+    await resend.emails.send({
+      from: "Paraguay Dashboard <onboarding@resend.dev>",
+      to: alertEmail,
+      subject: `[${newStatus}] Paraguay Dashboard: ${previousStatus} → ${newStatus}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Failed to send status change email:", error instanceof Error ? error.message : error);
+  }
 }
 
 export async function sendFetchErrorEmail(
@@ -98,12 +102,16 @@ export async function sendFetchErrorEmail(
     </div>
   `;
 
-  await resend.emails.send({
-    from: "Paraguay Dashboard <onboarding@resend.dev>",
-    to: alertEmail,
-    subject: `[ERROR] Paraguay Dashboard: ${errors.length} fetch failure(s)`,
-    html,
-  });
+  try {
+    await resend.emails.send({
+      from: "Paraguay Dashboard <onboarding@resend.dev>",
+      to: alertEmail,
+      subject: `[ERROR] Paraguay Dashboard: ${errors.length} fetch failure(s)`,
+      html,
+    });
+  } catch (error) {
+    console.error("Failed to send fetch error email:", error instanceof Error ? error.message : error);
+  }
 }
 
 export async function sendMissedRefreshEmail(
@@ -147,10 +155,14 @@ export async function sendMissedRefreshEmail(
     </div>
   `;
 
-  await resend.emails.send({
-    from: "Paraguay Dashboard <onboarding@resend.dev>",
-    to: alertEmail,
-    subject: `[STALE] Paraguay Dashboard: No refresh for ${ageHours}h`,
-    html,
-  });
+  try {
+    await resend.emails.send({
+      from: "Paraguay Dashboard <onboarding@resend.dev>",
+      to: alertEmail,
+      subject: `[STALE] Paraguay Dashboard: No refresh for ${ageHours}h`,
+      html,
+    });
+  } catch (error) {
+    console.error("Failed to send missed refresh email:", error instanceof Error ? error.message : error);
+  }
 }
