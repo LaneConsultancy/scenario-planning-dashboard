@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { buildGrokPrompt, parseGrokResponse, stripGrokCitationTags } from "@/app/lib/fetchers/grok";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  buildGrokPrompt,
+  parseGrokResponse,
+  stripGrokCitationTags,
+  fetchGrokAssessments,
+  EXPECTED_GROK_IDS,
+  type GrokClient,
+} from "@/app/lib/fetchers/grok";
+import type { GrokAssessment } from "@/app/lib/types";
 
 describe("stripGrokCitationTags", () => {
   it("removes a complete grok:render inline citation block", () => {
@@ -168,5 +176,149 @@ describe("parseGrokResponse", () => {
     ]);
 
     expect(parseGrokResponse(raw)).toEqual([]);
+  });
+});
+
+function makeAssessment(id: string): GrokAssessment {
+  return {
+    id,
+    status: "GREEN",
+    currentValue: `Current value for ${id}`,
+    triggered: false,
+    reasoning: `Reasoning for ${id}.`,
+  };
+}
+
+function makeFullResponse(): GrokAssessment[] {
+  return EXPECTED_GROK_IDS.map((id) => makeAssessment(id));
+}
+
+function makeMockClient(responses: GrokAssessment[][]): {
+  client: GrokClient;
+  prompts: string[];
+} {
+  const prompts: string[] = [];
+  let callIndex = 0;
+  const client: GrokClient = {
+    chat: {
+      completions: {
+        create: async (args) => {
+          prompts.push(args.messages[0].content);
+          const next = responses[callIndex] ?? [];
+          callIndex += 1;
+          return {
+            choices: [{ message: { content: JSON.stringify(next) } }],
+          };
+        },
+      },
+    },
+  };
+  return { client, prompts };
+}
+
+describe("fetchGrokAssessments self-healing", () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it("returns all assessments without retry when first call is complete", async () => {
+    const { client, prompts } = makeMockClient([makeFullResponse()]);
+
+    const result = await fetchGrokAssessments([], client);
+
+    expect(result).toHaveLength(EXPECTED_GROK_IDS.length);
+    expect(prompts).toHaveLength(1);
+    // First-pass prompt covers every expected indicator
+    for (const id of EXPECTED_GROK_IDS) {
+      expect(prompts[0]).toContain(`id: "${id}"`);
+    }
+  });
+
+  it("retries with only the missing indicators when first call is partial", async () => {
+    const full = makeFullResponse();
+    const missingIds = ["fertilizer-price", "gas-price"];
+    const partial = full.filter((a) => !missingIds.includes(a.id));
+    const recovered = missingIds.map((id) => makeAssessment(id));
+
+    const { client, prompts } = makeMockClient([partial, recovered]);
+
+    const result = await fetchGrokAssessments([], client);
+
+    expect(result).toHaveLength(EXPECTED_GROK_IDS.length);
+    expect(new Set(result.map((a) => a.id))).toEqual(new Set(EXPECTED_GROK_IDS));
+    // Retry prompt contains the missing IDs but not the ones we already have
+    expect(prompts).toHaveLength(2);
+    for (const id of missingIds) {
+      expect(prompts[1]).toContain(`id: "${id}"`);
+    }
+    expect(prompts[1]).not.toContain('id: "iea-disruption"');
+  });
+
+  it("throws when indicators are still missing after the retry", async () => {
+    const partial = makeFullResponse().filter((a) => a.id !== "hormuz-transit");
+    // Retry returns nothing — Grok keeps failing on hormuz-transit
+    const { client, prompts } = makeMockClient([partial, []]);
+
+    await expect(fetchGrokAssessments([], client)).rejects.toThrow(/hormuz-transit/);
+    expect(prompts).toHaveLength(2);
+  });
+
+  it("retries with the full set when the first call returns nothing", async () => {
+    const { client, prompts } = makeMockClient([[], makeFullResponse()]);
+
+    const result = await fetchGrokAssessments([], client);
+
+    expect(result).toHaveLength(EXPECTED_GROK_IDS.length);
+    expect(prompts).toHaveLength(2);
+    // Retry prompt asks for every expected id because all are missing
+    for (const id of EXPECTED_GROK_IDS) {
+      expect(prompts[1]).toContain(`id: "${id}"`);
+    }
+  });
+
+  it("throws after retry when the first call returns invalid JSON", async () => {
+    const malformedClient: GrokClient = {
+      chat: {
+        completions: {
+          create: vi
+            .fn()
+            // first call: garbage content → parseGrokResponse returns []
+            .mockResolvedValueOnce({
+              choices: [{ message: { content: "not json at all" } }],
+            })
+            // retry: also nothing
+            .mockResolvedValueOnce({
+              choices: [{ message: { content: "" } }],
+            }),
+        },
+      },
+    };
+
+    await expect(fetchGrokAssessments([], malformedClient)).rejects.toThrow(
+      /after retry/
+    );
+  });
+
+  it("ignores duplicate ids returned in the retry", async () => {
+    const full = makeFullResponse();
+    const partial = full.slice(0, 11); // drops the last one
+    const missingId = full[11].id;
+    // Retry returns the missing one PLUS a duplicate of one we already had
+    const retryWithDupe = [makeAssessment(missingId), full[0]];
+
+    const { client } = makeMockClient([partial, retryWithDupe]);
+
+    const result = await fetchGrokAssessments([], client);
+
+    expect(result).toHaveLength(EXPECTED_GROK_IDS.length);
+    // The first-pass version of full[0] wins; we don't pick up the duplicate
+    const firstId = result.filter((a) => a.id === full[0].id);
+    expect(firstId).toHaveLength(1);
   });
 });
