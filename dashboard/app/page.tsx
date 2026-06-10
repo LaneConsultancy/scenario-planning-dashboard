@@ -5,11 +5,21 @@ import { CategoryCard } from "@/app/components/CategoryCard";
 import { IndicatorCard } from "@/app/components/IndicatorCard";
 import { WeeklyTrend } from "@/app/components/WeeklyTrend";
 import { calculateWeeklyTrend } from "@/app/lib/trend";
+import { calculateFreshness } from "@/app/lib/freshness";
 import type { Category } from "@/app/lib/types";
 
 export const revalidate = 0;
 
 const CATEGORY_ORDER: Category[] = ["GEOPOLITICAL", "ENERGY", "AGRICULTURE", "POLITICAL", "CIVIL_LIBERTIES"];
+
+const FRESHNESS_COLOR = { fresh: "#2ecc71", degraded: "#f0c040", stale: "#e74c3c" } as const;
+
+function formatAge(ms: number): string {
+  const hours = Math.floor(ms / (60 * 60 * 1000));
+  if (hours < 1) return "under 1h";
+  if (hours < 48) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
 
 export default async function DashboardPage() {
   let state = null;
@@ -34,6 +44,14 @@ export default async function DashboardPage() {
     );
   }
 
+  const freshness = calculateFreshness(state.indicators);
+  const freshnessColor = FRESHNESS_COLOR[freshness.level];
+  const freshnessTitle =
+    freshness.level === "fresh"
+      ? "All indicators updated within the last refresh cycle"
+      : `${freshness.staleCount} of ${freshness.total} indicators stale` +
+        (freshness.oldestAgeMs !== null ? ` — oldest ${formatAge(freshness.oldestAgeMs)} old` : "");
+
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
       <div className="flex justify-between items-center px-5 py-3" style={{ background: "var(--bg-secondary)", borderBottom: "1px solid var(--border)" }}>
@@ -45,7 +63,12 @@ export default async function DashboardPage() {
           <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
             Next: {new Date(state.nextRefresh).toLocaleString("en-GB", { timeStyle: "short" })}
           </span>
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+          {freshness.staleCount > 0 && (
+            <span className="text-xs font-mono" style={{ color: freshnessColor }}>
+              {freshness.staleCount} stale
+            </span>
+          )}
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: freshnessColor }} title={freshnessTitle} />
         </div>
       </div>
 
