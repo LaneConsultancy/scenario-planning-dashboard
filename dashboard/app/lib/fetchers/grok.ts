@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import type { GrokAssessment, Status, Indicator } from "../types";
 
-const GROK_MODEL = "x-ai/grok-4.1-fast";
+const GROK_MODEL = "x-ai/grok-4.20";
 const VALID_STATUSES = new Set<Status>(["GREEN", "AMBER", "RED"]);
 
 interface IndicatorPrompt {
