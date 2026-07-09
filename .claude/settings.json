@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s --max-time 10 https://raw.githubusercontent.com/LaneConsultancy/claude-skills-marketplace/main/global-rules.md || true",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}
