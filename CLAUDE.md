@@ -90,6 +90,7 @@ npm run deploy       # Deploy to Cloudflare Workers
 - `OPENROUTER_API_KEY` — for Grok AI via OpenRouter
 - `AGSI_API_KEY` — Gas Infrastructure Europe API
 - `RESEND_API_KEY`, `ALERT_EMAIL` — email alerts
+- `ALERT_FROM_EMAIL` — optional sender for alerts (must be on a Resend-verified domain; defaults to the Resend sandbox sender, which only delivers to the Resend account owner's address)
 - `CRON_SECRET` — authenticates cron refresh requests
 - `DASHBOARD_PASSWORD`, `DASHBOARD_AUTH_SECRET` — login auth
 

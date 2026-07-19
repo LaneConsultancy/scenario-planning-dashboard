@@ -8,20 +8,49 @@ const STATUS_COLORS: Record<Status, string> = {
   RED: "#e74c3c",
 };
 
+function dashboardUrl(): string {
+  return process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+}
+
+/**
+ * Shared send path for all alert emails.
+ *
+ * The Resend SDK does NOT throw on API errors — it resolves with
+ * { data, error }. Ignoring that error field means rejected sends
+ * (e.g. the sandbox sender onboarding@resend.dev refusing to deliver
+ * to anyone but the Resend account owner) fail silently. We check it
+ * explicitly so every failed alert at least reaches the logs.
+ */
+async function sendAlertEmail(subject: string, html: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const alertEmail = process.env.ALERT_EMAIL;
+
+  if (!apiKey || !alertEmail) {
+    console.error(`[Email] Not configured (RESEND_API_KEY/ALERT_EMAIL missing) — alert NOT sent: ${subject}`);
+    return;
+  }
+
+  // onboarding@resend.dev is Resend's sandbox sender: it only delivers to the
+  // Resend account owner's own address. Set ALERT_FROM_EMAIL to an address on
+  // a domain verified in Resend to alert any other recipient.
+  const from = process.env.ALERT_FROM_EMAIL ?? "Paraguay Dashboard <onboarding@resend.dev>";
+  const resend = new Resend(apiKey);
+
+  try {
+    const { error } = await resend.emails.send({ from, to: alertEmail, subject, html });
+    if (error) {
+      console.error(`[Email] Resend rejected alert "${subject}":`, JSON.stringify(error));
+    }
+  } catch (error) {
+    console.error(`[Email] Failed to send alert "${subject}":`, error instanceof Error ? error.message : error);
+  }
+}
+
 export async function sendStatusChangeEmail(
   previousStatus: Status,
   newStatus: Status,
   indicators: Indicator[]
 ): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const alertEmail = process.env.ALERT_EMAIL;
-
-  if (!apiKey || !alertEmail) {
-    console.warn("Email not configured — skipping alert");
-    return;
-  }
-
-  const resend = new Resend(apiKey);
   const triggered = indicators.filter((i) => i.triggered);
   const color = STATUS_COLORS[newStatus];
 
@@ -41,7 +70,7 @@ export async function sendStatusChangeEmail(
         <h3 style="color: #999;">Triggered Indicators (${triggered.length}/${indicators.length})</h3>
         <ul style="color: #ccc;">${triggeredList || "<li>None</li>"}</ul>
         <p style="margin-top: 20px;">
-          <a href="${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}"
+          <a href="${dashboardUrl()}"
              style="color: ${color}; text-decoration: underline;">
             View Dashboard →
           </a>
@@ -50,31 +79,12 @@ export async function sendStatusChangeEmail(
     </div>
   `;
 
-  try {
-    await resend.emails.send({
-      from: "Paraguay Dashboard <onboarding@resend.dev>",
-      to: alertEmail,
-      subject: `[${newStatus}] Paraguay Dashboard: ${previousStatus} → ${newStatus}`,
-      html,
-    });
-  } catch (error) {
-    console.error("Failed to send status change email:", error instanceof Error ? error.message : error);
-  }
+  await sendAlertEmail(`[${newStatus}] Paraguay Dashboard: ${previousStatus} → ${newStatus}`, html);
 }
 
 export async function sendFetchErrorEmail(
   errors: Array<{ fetcherName: string; error: string }>
 ): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const alertEmail = process.env.ALERT_EMAIL;
-
-  if (!apiKey || !alertEmail) {
-    console.warn("Email not configured — skipping fetch error alert");
-    return;
-  }
-
-  const resend = new Resend(apiKey);
-
   const errorList = errors
     .map((e) => `<li><strong>${e.fetcherName}</strong>: ${e.error}</li>`)
     .join("\n");
@@ -93,7 +103,7 @@ export async function sendFetchErrorEmail(
           Check API keys and service availability. Failed indicators retain their previous values but may be outdated.
         </p>
         <p style="margin-top: 20px;">
-          <a href="${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}"
+          <a href="${dashboardUrl()}"
              style="color: #e74c3c; text-decoration: underline;">
             View Dashboard →
           </a>
@@ -102,31 +112,13 @@ export async function sendFetchErrorEmail(
     </div>
   `;
 
-  try {
-    await resend.emails.send({
-      from: "Paraguay Dashboard <onboarding@resend.dev>",
-      to: alertEmail,
-      subject: `[ERROR] Paraguay Dashboard: ${errors.length} fetch failure(s)`,
-      html,
-    });
-  } catch (error) {
-    console.error("Failed to send fetch error email:", error instanceof Error ? error.message : error);
-  }
+  await sendAlertEmail(`[ERROR] Paraguay Dashboard: ${errors.length} fetch failure(s)`, html);
 }
 
 export async function sendMissedRefreshEmail(
   lastRefresh: string,
   ageMs: number
 ): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const alertEmail = process.env.ALERT_EMAIL;
-
-  if (!apiKey || !alertEmail) {
-    console.warn("Email not configured — skipping missed refresh alert");
-    return;
-  }
-
-  const resend = new Resend(apiKey);
   const ageHours = Math.round(ageMs / 3600000);
 
   const html = `
@@ -146,7 +138,7 @@ export async function sendMissedRefreshEmail(
           You can trigger a manual refresh at the /api/cron/refresh endpoint.
         </p>
         <p style="margin-top: 20px;">
-          <a href="${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}"
+          <a href="${dashboardUrl()}"
              style="color: #e74c3c; text-decoration: underline;">
             View Dashboard →
           </a>
@@ -155,14 +147,5 @@ export async function sendMissedRefreshEmail(
     </div>
   `;
 
-  try {
-    await resend.emails.send({
-      from: "Paraguay Dashboard <onboarding@resend.dev>",
-      to: alertEmail,
-      subject: `[STALE] Paraguay Dashboard: No refresh for ${ageHours}h`,
-      html,
-    });
-  } catch (error) {
-    console.error("Failed to send missed refresh email:", error instanceof Error ? error.message : error);
-  }
+  await sendAlertEmail(`[STALE] Paraguay Dashboard: No refresh for ${ageHours}h`, html);
 }
