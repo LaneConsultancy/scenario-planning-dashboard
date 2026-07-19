@@ -221,14 +221,20 @@ function missingIds(expected: readonly string[], got: GrokAssessment[]): string[
 /**
  * Fetches Grok assessments with self-healing: if the first call returns
  * fewer than expected indicators (or invalid JSON), retries with a focused
- * prompt asking only for the missing ones. Throws if anything is still
- * missing after the retry, which surfaces via the existing fetch-error
- * email path in the refresh route.
+ * prompt asking only for the missing ones. Anything still missing after the
+ * retry is returned in `missing` so the caller can report those indicators
+ * as fetch errors WITHOUT discarding the assessments that did succeed —
+ * throwing here would stale all 12 AI indicators over one flaky answer.
  */
+export interface GrokFetchOutcome {
+  assessments: GrokAssessment[];
+  missing: string[];
+}
+
 export async function fetchGrokAssessments(
   previousIndicators: Indicator[] = [],
   clientOverride?: GrokClient
-): Promise<GrokAssessment[]> {
+): Promise<GrokFetchOutcome> {
   let client = clientOverride;
   if (!client) {
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -240,7 +246,7 @@ export async function fetchGrokAssessments(
   let missing = missingIds(EXPECTED_GROK_IDS, firstPass);
 
   if (missing.length === 0) {
-    return firstPass;
+    return { assessments: firstPass, missing: [] };
   }
 
   console.warn(`[Grok] First pass returned ${firstPass.length}/${EXPECTED_GROK_IDS.length} assessments; retrying for: ${missing.join(", ")}`);
@@ -261,10 +267,8 @@ export async function fetchGrokAssessments(
 
   missing = missingIds(EXPECTED_GROK_IDS, merged);
   if (missing.length > 0) {
-    throw new Error(
-      `Grok returned no assessment for ${missing.length} indicator(s) after retry: ${missing.join(", ")}`
-    );
+    console.warn(`[Grok] No assessment for ${missing.length} indicator(s) after retry: ${missing.join(", ")}`);
   }
 
-  return merged;
+  return { assessments: merged, missing };
 }

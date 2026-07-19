@@ -46,7 +46,13 @@ export async function fetchAllIndicators(previousIndicators: Indicator[] = []): 
       safeFetch("hormuz", fetchHormuzTransit, errors),
     ]);
 
-  const grokAssessments = await safeFetch("grok", () => fetchGrokAssessments(previousIndicators), errors);
+  const grokOutcome = await safeFetch("grok", () => fetchGrokAssessments(previousIndicators), errors);
+  if (grokOutcome && grokOutcome.missing.length > 0) {
+    errors.push({
+      fetcherName: "grok",
+      error: `No assessment after retry for: ${grokOutcome.missing.join(", ")} (other assessments applied)`,
+    });
+  }
 
   // Collect non-null results
   const results: FetchResult[] = [
@@ -59,5 +65,5 @@ export async function fetchAllIndicators(previousIndicators: Indicator[] = []): 
     hormuzTransit,
   ].filter((r): r is FetchResult => r !== null);
 
-  return { results, grokAssessments: grokAssessments ?? [], errors };
+  return { results, grokAssessments: grokOutcome?.assessments ?? [], errors };
 }

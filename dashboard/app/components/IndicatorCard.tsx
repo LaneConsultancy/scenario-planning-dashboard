@@ -13,7 +13,9 @@ interface Props {
 
 export function IndicatorCard({ indicator }: Props) {
   const color = STATUS_COLOR[indicator.status];
-  const isStale = new Date().getTime() - new Date(indicator.lastUpdated).getTime() > 12 * 60 * 60 * 1000;
+  // Refreshes run every 12h — the extra hour of slack stops on-time data
+  // flashing STALE, while one missed refresh still shows the badge.
+  const isStale = new Date().getTime() - new Date(indicator.lastUpdated).getTime() > 13 * 60 * 60 * 1000;
   const daysSinceTrigger = indicator.triggerDate
     ? Math.floor((new Date().getTime() - new Date(indicator.triggerDate).getTime()) / (1000 * 60 * 60 * 24))
     : null;

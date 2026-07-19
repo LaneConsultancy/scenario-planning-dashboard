@@ -8,24 +8,19 @@ export async function fetchHealthOutbreaks(): Promise<FetchResult> {
     { headers: { Accept: "application/json" } }
   );
 
-  let outbreakCount = 0;
-  let description = "No elevated outbreak activity detected";
+  if (!res.ok) throw new Error(`UKHSA API error: ${res.status}`);
 
-  if (res.ok) {
-    const data = await res.json();
-    const recentCases = data.results?.slice(0, 7) || [];
-    const weeklyTotal = recentCases.reduce(
-      (sum: number, d: { metric_value: number }) => sum + (d.metric_value || 0),
-      0
-    );
-    outbreakCount = weeklyTotal;
-    description = `${weeklyTotal} England COVID cases (7-day total; reference metric only)`;
-  }
+  const data = await res.json();
+  const recentCases = data.results?.slice(0, 7) || [];
+  const weeklyTotal = recentCases.reduce(
+    (sum: number, d: { metric_value: number }) => sum + (d.metric_value || 0),
+    0
+  );
 
   return {
     id: "health-emergency",
-    currentValue: description,
-    numericValue: outbreakCount,
+    currentValue: `${weeklyTotal} England COVID cases (7-day total; reference metric only)`,
+    numericValue: weeklyTotal,
     aiReasoning: null,
     source: "UKHSA Dashboard API",
   };

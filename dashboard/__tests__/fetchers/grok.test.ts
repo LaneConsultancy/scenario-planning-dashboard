@@ -232,7 +232,8 @@ describe("fetchGrokAssessments self-healing", () => {
 
     const result = await fetchGrokAssessments([], client);
 
-    expect(result).toHaveLength(EXPECTED_GROK_IDS.length);
+    expect(result.assessments).toHaveLength(EXPECTED_GROK_IDS.length);
+    expect(result.missing).toEqual([]);
     expect(prompts).toHaveLength(1);
     // First-pass prompt covers every expected indicator
     for (const id of EXPECTED_GROK_IDS) {
@@ -250,8 +251,9 @@ describe("fetchGrokAssessments self-healing", () => {
 
     const result = await fetchGrokAssessments([], client);
 
-    expect(result).toHaveLength(EXPECTED_GROK_IDS.length);
-    expect(new Set(result.map((a) => a.id))).toEqual(new Set(EXPECTED_GROK_IDS));
+    expect(result.assessments).toHaveLength(EXPECTED_GROK_IDS.length);
+    expect(result.missing).toEqual([]);
+    expect(new Set(result.assessments.map((a) => a.id))).toEqual(new Set(EXPECTED_GROK_IDS));
     // Retry prompt contains the missing IDs but not the ones we already have
     expect(prompts).toHaveLength(2);
     for (const id of missingIds) {
@@ -260,12 +262,16 @@ describe("fetchGrokAssessments self-healing", () => {
     expect(prompts[1]).not.toContain('id: "iea-disruption"');
   });
 
-  it("throws when indicators are still missing after the retry", async () => {
+  it("returns the partial assessments and reports missing ids after a failed retry", async () => {
     const partial = makeFullResponse().filter((a) => a.id !== "hormuz-transit");
     // Retry returns nothing — Grok keeps failing on hormuz-transit
     const { client, prompts } = makeMockClient([partial, []]);
 
-    await expect(fetchGrokAssessments([], client)).rejects.toThrow(/hormuz-transit/);
+    const result = await fetchGrokAssessments([], client);
+
+    // The 11 good assessments are kept, not discarded
+    expect(result.assessments).toHaveLength(EXPECTED_GROK_IDS.length - 1);
+    expect(result.missing).toEqual(["hormuz-transit"]);
     expect(prompts).toHaveLength(2);
   });
 
@@ -274,7 +280,8 @@ describe("fetchGrokAssessments self-healing", () => {
 
     const result = await fetchGrokAssessments([], client);
 
-    expect(result).toHaveLength(EXPECTED_GROK_IDS.length);
+    expect(result.assessments).toHaveLength(EXPECTED_GROK_IDS.length);
+    expect(result.missing).toEqual([]);
     expect(prompts).toHaveLength(2);
     // Retry prompt asks for every expected id because all are missing
     for (const id of EXPECTED_GROK_IDS) {
@@ -282,7 +289,7 @@ describe("fetchGrokAssessments self-healing", () => {
     }
   });
 
-  it("throws after retry when the first call returns invalid JSON", async () => {
+  it("reports all ids missing when both calls return invalid JSON", async () => {
     const malformedClient: GrokClient = {
       chat: {
         completions: {
@@ -300,9 +307,10 @@ describe("fetchGrokAssessments self-healing", () => {
       },
     };
 
-    await expect(fetchGrokAssessments([], malformedClient)).rejects.toThrow(
-      /after retry/
-    );
+    const result = await fetchGrokAssessments([], malformedClient);
+
+    expect(result.assessments).toEqual([]);
+    expect(result.missing).toEqual([...EXPECTED_GROK_IDS]);
   });
 
   it("ignores duplicate ids returned in the retry", async () => {
@@ -316,9 +324,9 @@ describe("fetchGrokAssessments self-healing", () => {
 
     const result = await fetchGrokAssessments([], client);
 
-    expect(result).toHaveLength(EXPECTED_GROK_IDS.length);
+    expect(result.assessments).toHaveLength(EXPECTED_GROK_IDS.length);
     // The first-pass version of full[0] wins; we don't pick up the duplicate
-    const firstId = result.filter((a) => a.id === full[0].id);
+    const firstId = result.assessments.filter((a) => a.id === full[0].id);
     expect(firstId).toHaveLength(1);
   });
 });
