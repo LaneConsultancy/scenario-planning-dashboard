@@ -313,6 +313,27 @@ describe("fetchGrokAssessments self-healing", () => {
     expect(result.missing).toEqual([...EXPECTED_GROK_IDS]);
   });
 
+  it("keeps first-pass assessments when the retry call throws", async () => {
+    const partial = makeFullResponse().filter((a) => a.id !== "hormuz-transit");
+    let call = 0;
+    const client: GrokClient = {
+      chat: {
+        completions: {
+          create: async () => {
+            call += 1;
+            if (call === 2) throw new Error("OpenRouter timeout");
+            return { choices: [{ message: { content: JSON.stringify(partial) } }] };
+          },
+        },
+      },
+    };
+
+    const result = await fetchGrokAssessments([], client);
+
+    expect(result.assessments).toHaveLength(EXPECTED_GROK_IDS.length - 1);
+    expect(result.missing).toEqual(["hormuz-transit"]);
+  });
+
   it("ignores duplicate ids returned in the retry", async () => {
     const full = makeFullResponse();
     const partial = full.slice(0, 11); // drops the last one

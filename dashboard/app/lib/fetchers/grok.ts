@@ -239,7 +239,15 @@ export async function fetchGrokAssessments(
   if (!client) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) throw new Error("OPENROUTER_API_KEY not set");
-    client = new OpenAI({ baseURL: "https://openrouter.ai/api/v1", apiKey }) as unknown as GrokClient;
+    // SDK default timeout is 10 minutes — one hung call would eat the whole
+    // function budget. 100s per attempt keeps first pass + retry inside the
+    // route's 300s maxDuration.
+    client = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey,
+      timeout: 100_000,
+      maxRetries: 1,
+    }) as unknown as GrokClient;
   }
 
   const firstPass = await callGrokOnce(client, buildGrokPrompt(previousIndicators));
@@ -251,10 +259,16 @@ export async function fetchGrokAssessments(
 
   console.warn(`[Grok] First pass returned ${firstPass.length}/${EXPECTED_GROK_IDS.length} assessments; retrying for: ${missing.join(", ")}`);
 
-  const retryPass = await callGrokOnce(
-    client,
-    buildGrokPrompt(previousIndicators, new Set(missing))
-  );
+  // A thrown retry (timeout, API error) must not discard the first pass.
+  let retryPass: GrokAssessment[] = [];
+  try {
+    retryPass = await callGrokOnce(
+      client,
+      buildGrokPrompt(previousIndicators, new Set(missing))
+    );
+  } catch (error) {
+    console.warn("[Grok] Retry pass failed:", error instanceof Error ? error.message : error);
+  }
 
   const merged = [...firstPass];
   const seen = new Set(firstPass.map((a) => a.id));

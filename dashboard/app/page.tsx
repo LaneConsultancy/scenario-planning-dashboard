@@ -49,6 +49,19 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {state.fetchErrors && state.fetchErrors.length > 0 && (
+        <div className="mx-5 mt-4 rounded-lg p-4" style={{ background: "rgba(231,76,60,0.1)", border: "1px solid #e74c3c" }}>
+          <div className="font-semibold text-sm mb-1" style={{ color: "#e74c3c" }}>
+            {state.fetchErrors.length} data source{state.fetchErrors.length > 1 ? "s" : ""} failed on the last refresh — affected indicators show their previous values
+          </div>
+          {state.fetchErrors.map((e, idx) => (
+            <div key={idx} className="text-xs font-mono mt-1" style={{ color: "var(--text-secondary)" }}>
+              <span style={{ color: "var(--text-primary)" }}>{e.fetcherName}:</span> {e.error}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="py-8 text-center">
         <TrafficLight status={state.overall} triggeredCount={state.triggeredCount} total={state.indicators.length} />
         <ActionBanner status={state.overall} />

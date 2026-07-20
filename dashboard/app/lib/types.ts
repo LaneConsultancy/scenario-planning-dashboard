@@ -40,6 +40,9 @@ export interface DashboardState {
   indicators: Indicator[];
   lastRefresh: string;
   nextRefresh: string;
+  // Errors from the most recent refresh — shown as a banner on the dashboard
+  // so source failures are visible even when email alerts can't deliver.
+  fetchErrors?: Array<{ fetcherName: string; error: string }>;
 }
 
 export interface IndicatorDefinition {

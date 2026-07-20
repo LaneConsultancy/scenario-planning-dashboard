@@ -9,7 +9,9 @@ import { sendStatusChangeEmail, sendFetchErrorEmail } from "@/app/lib/email";
 import { applyHysteresis } from "@/app/lib/hysteresis";
 import type { Indicator, DashboardState, Category, FetchResult, GrokAssessment } from "@/app/lib/types";
 
-export const maxDuration = 60;
+// Grok with web search takes 50-70s on its own; a self-heal retry pass can
+// double that. 60s was being exceeded intermittently, killing the refresh.
+export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
   return POST(request);
@@ -156,6 +158,7 @@ export async function POST(request: NextRequest) {
     indicators,
     lastRefresh: now,
     nextRefresh,
+    fetchErrors: errors,
   };
 
   await saveDashboardState(state);
