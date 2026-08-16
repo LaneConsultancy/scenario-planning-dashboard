@@ -164,6 +164,54 @@ describe("parseGrokResponse", () => {
     );
   });
 
+  it("extracts the array when surrounded by prose", () => {
+    const raw =
+      'Here are the assessments you asked for:\n[{"id":"iea-disruption","status":"GREEN","currentValue":"No upgrade","triggered":false,"reasoning":"Stable."}]\nLet me know if you need more.';
+    const result = parseGrokResponse(raw);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("iea-disruption");
+  });
+
+  it("parses when citation markup is injected between JSON tokens", () => {
+    const raw =
+      '[{"id":"iea-disruption","status":"GREEN","currentValue":"No upgrade","triggered":false,"reasoning":"Stable."}<grok:render type="render_inline_citation"><argument name="citation_id">3</argument></grok:render>]';
+    const result = parseGrokResponse(raw);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("iea-disruption");
+  });
+
+  it("unwraps an object-wrapped assessments array", () => {
+    const raw = JSON.stringify({
+      assessments: [
+        {
+          id: "iea-disruption",
+          status: "GREEN",
+          currentValue: "No upgrade",
+          triggered: false,
+          reasoning: "Stable.",
+        },
+      ],
+    });
+    const result = parseGrokResponse(raw);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("iea-disruption");
+  });
+
+  it("normalizes lowercase status values", () => {
+    const raw = JSON.stringify([
+      {
+        id: "iea-disruption",
+        status: "amber",
+        currentValue: "Warnings issued",
+        triggered: false,
+        reasoning: "Strong language, below threshold.",
+      },
+    ]);
+    const result = parseGrokResponse(raw);
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("AMBER");
+  });
+
   it("drops assessments with non-boolean triggered values", () => {
     const raw = JSON.stringify([
       {
