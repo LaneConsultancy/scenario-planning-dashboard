@@ -164,17 +164,49 @@ export function stripGrokCitationTags(text: string): string {
 }
 
 export function parseGrokResponse(raw: string): GrokAssessment[] {
-  try {
-    const codeBlockMatch = raw.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-    const jsonStr = codeBlockMatch ? codeBlockMatch[1] : raw;
+  const codeBlockMatch = raw.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  const jsonStr = (codeBlockMatch ? codeBlockMatch[1] : raw).trim();
 
-    const parsed = JSON.parse(jsonStr.trim());
-    if (!Array.isArray(parsed)) {
-      console.warn("[Grok] Response parsed but is not an array");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    // Grok with the web plugin sometimes surrounds the JSON with prose or
+    // injects citation markup between JSON tokens, which breaks a direct
+    // parse. Strip citations and extract the outermost array before giving up.
+    const arrayMatch = stripGrokCitationTags(jsonStr).match(/\[[\s\S]*\]/);
+    try {
+      parsed = arrayMatch ? JSON.parse(arrayMatch[0]) : undefined;
+    } catch {
+      parsed = undefined;
+    }
+    if (parsed === undefined) {
+      // Log a snippet of the raw content — without it a batch-wide parse
+      // failure is undiagnosable after the fact.
+      console.warn(`[Grok] Unparseable response (${raw.length} chars): ${raw.slice(0, 500)}`);
       return [];
     }
+  }
 
-    return parsed.filter(isValidGrokAssessment).map((assessment) => ({
+  // Accept {"assessments": [...]}-style object wrappers.
+  if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+    parsed = Object.values(parsed).find(Array.isArray);
+  }
+
+  if (!Array.isArray(parsed)) {
+    console.warn(`[Grok] Response parsed but contains no array: ${raw.slice(0, 500)}`);
+    return [];
+  }
+
+  return parsed
+    .map((item) =>
+      // Tolerate case drift like "green" — an LLM boundary, not a strict API.
+      item !== null && typeof item === "object" && typeof (item as Record<string, unknown>).status === "string"
+        ? { ...item, status: ((item as Record<string, unknown>).status as string).toUpperCase() }
+        : item
+    )
+    .filter(isValidGrokAssessment)
+    .map((assessment) => ({
       ...assessment,
       // Strip Grok citation XML tags from any text fields that may contain them.
       // Doing this here, as close as possible to the API boundary, ensures the
@@ -182,10 +214,6 @@ export function parseGrokResponse(raw: string): GrokAssessment[] {
       currentValue: stripGrokCitationTags(assessment.currentValue),
       reasoning: stripGrokCitationTags(assessment.reasoning),
     }));
-  } catch (err) {
-    console.warn("[Grok] Failed to parse response as JSON:", err instanceof Error ? err.message : err);
-    return [];
-  }
 }
 
 export interface GrokClient {
